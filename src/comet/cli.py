@@ -136,9 +136,10 @@ def main():
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
+        sys.exit(1)
     except KeyboardInterrupt:
         comet_logger.error("Interrupted. Exiting...")
-        sys.exit()
+        sys.exit(1)
 
 
 # Press the green button in the gutter to run the script.
