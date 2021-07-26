@@ -1,7 +1,7 @@
 logging
 colorama
 coloredlogs
-yaml
+PyYAML
 jsonschema
 socket
 semver

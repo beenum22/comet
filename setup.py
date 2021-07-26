@@ -45,7 +45,7 @@ setup(
             "colorama",
             "coloredlogs",
             "logging",
-            "yaml",
+            "PyYAML",
             "jsonschema",
             "socket",
             "semver",
