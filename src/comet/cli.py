@@ -53,13 +53,13 @@ def main():
             )
         parser.add_argument(
             "-s",
-            "--scm_provider",
+            "--scm-provider",
             default="bitbucket",
             help="Git SCM provider name"
             )
         parser.add_argument(
             "-c",
-            "--connection_type",
+            "--connection-type",
             default="ssh",
             help="Git SCM provider remote connection type"
             )
