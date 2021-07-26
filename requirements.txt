@@ -1,0 +1,8 @@
+GitPython
+paramiko
+requests
+logging
+colorama
+coloredlogs
+
+pip
