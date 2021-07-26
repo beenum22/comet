@@ -273,7 +273,7 @@ class Scm(object):
         commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path)]
         return commits
 
-    def commit_changes(self, msg: str = "chore: commit changes", *paths: list[str]) -> None:
+    def commit_changes(self, msg: str = "chore: commit changes", *paths: list) -> None:
         try:
             logger.info(f"Committing path [{[path for path in paths]}] changes")
             self.repo_object.git.add(paths)

@@ -5,10 +5,7 @@ __version__ = '0.1.0'
 
 import sys
 import argparse
-from src.comet.scm import Scm
-from src.comet.semver import SemVer
-from src.comet.config import ConfigParser
-from src.comet.work_flows import GitFlow
+from .work_flows import GitFlow
 import logging.config
 from colorama import Fore, Style
 import coloredlogs
@@ -94,6 +91,14 @@ def main():
             default="./.comet.yml",
             help="Git Project configuration file path"
         )
+        parser.add_argument(
+            "--workflow",
+            required=True,
+            choices=[
+                "development"
+            ],
+            help="Work flow to execute"
+        )
         args = parser.parse_args()
         if args.debug:
             comet_logger.setLevel(logging.DEBUG)
@@ -115,10 +120,11 @@ def main():
             gitflow.development_flow()
         elif gitflow.scm.source_branch == gitflow.project_config.config["stable_branch"]:
             gitflow.stable_flow()
+        else:
+            logging.warning(f"No work flow is implemented for the branch [{gitflow.scm.source_branch}]")
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
-        raise
     except KeyboardInterrupt:
         comet_logger.error("Interrupted. Exiting...")
         sys.exit()

@@ -1,9 +1,6 @@
-from typing import List, TypedDict
-# from typing_extensions import TypedDict
 import logging
 import yaml
 from yaml.loader import SafeLoader
-from schema import Schema, And, Use, Optional, SchemaError
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 import os
