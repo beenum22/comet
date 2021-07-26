@@ -268,22 +268,25 @@ class Scm(object):
 
     def find_new_commits(self, source_branch, reference_branch, path="."):
         logger.info(
-            f"Looking for new commits on source branch [{source_branch}] compared to reference branch [{reference_branch}]")
+            f"Looking for new commits on [{path}] project path on source branch "
+            f"[{source_branch}] compared to reference branch [{reference_branch}]")
         commit_range = f"{reference_branch}...{source_branch}"
         commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path)]
         return commits
 
     def commit_changes(self, msg: str = "chore: commit changes", *paths: list) -> None:
         try:
-            logger.info(f"Committing path [{[path for path in paths]}] changes")
-            self.repo_object.git.add(paths)
-            self.repo_object.git.commit("-m", msg)
+            repo_changed_files = [item.a_path for item in self.repo_object.index.diff(None)]
+            project_staged_files = [path for path in paths if path in repo_changed_files]
+            if len(project_staged_files) > 0:
+                logger.info(f"Committing path [{[path for path in paths]}] changes")
+                self.repo_object.git.add(paths)
+                self.repo_object.git.commit("-m", msg)
+            else:
+                logger.warning(f"No commits found for project files {','.join(paths)}")
         except GitError as err:
             logger.debug(err)
             raise
-
-    def push_changes(self) -> None:
-        pass
 
     def get_remote_alias(self):
         return str(self.repo_object.remote())
@@ -297,11 +300,25 @@ class Scm(object):
             tag = str(self.repo_object.tags[-1])
         return tag
 
+    def show_file(self, branch: str, file: str) -> str:
+        try:
+            logger.debug(f"Executing Git show command for a [{file}] file on [{branch}] branch")
+            output = self.repo_object.git.show(f"{branch}:{file}")
+            return output
+        except GitError as err:
+            logger.debug(err)
+            raise
+
     def add_tag(self, name):
         pass
 
     def add_branch(self, name):
         pass
 
-    def push_changes(self, remote, push_tags=True):
-        pass
+    def push_changes(self):
+        try:
+            logger.info(f"Pushing local changes to remote [{self.get_remote_alias()}]")
+            self.repo_object.remote().push()
+        except GitError as err:
+            logger.debug(err)
+            raise

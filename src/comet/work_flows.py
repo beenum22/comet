@@ -37,7 +37,9 @@ class GitFlow(object):
         self.project_local_path = project_local_path
         self.scm = None
         self.project_config = {}
-        self.projects_semver_objects = {}
+        self.projects_semver_objects = {
+            "bgcf": {}
+        }
         self.prepare_workflow()
 
     def _sanitize_paths(self) -> None:
@@ -86,7 +88,8 @@ class GitFlow(object):
             for project in self.project_config.config["projects"]:
                 self.projects_semver_objects[project["path"]] = SemVer(
                     project_path=f"{self.project_local_path}/{project['path']}",
-                    version_files=project["version_files"]
+                    version_files=project["version_files"],
+                    project_version_file=os.path.join(self.project_local_path, self.project_config_path)
                 )
         except Exception:
             raise
@@ -122,10 +125,14 @@ class GitFlow(object):
                     continue
                 else:
                     past_bump = next_bump
-            self.projects_semver_objects[project["path"]].update_version_files()
+            print(self.projects_semver_objects[project["path"]]._read_default_version_file())
+            self.projects_semver_objects[project["path"]].update_version_files(
+                self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
+            )
             self.scm.commit_changes(
-                f"chore: update comet config and project version files",
+                f"chore: update comet config and project version files for {project['path']}",
                 project["path"],
                 self.project_config_path
             )
+            self.scm.push_changes()
 

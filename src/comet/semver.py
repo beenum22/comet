@@ -9,6 +9,7 @@ logging.getLogger("paramiko").setLevel(logging.ERROR)
 logging.getLogger("git").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
+
 class SemVer(object):
 
     MAJOR = 4
@@ -25,18 +26,16 @@ class SemVer(object):
         NO_CHANGE: "no_change"
     }
 
-    # SUPPORTED_RELEASE_TYPES = [
-    #     "major",
-    #     "minor",
-    #     "patch",
-    #     "pre_release"
-    # ]
-
     SUPPORTED_PRE_RELEASE_TYPES = [
         "dev",
         "alpha",
         "beta",
         "rc"
+    ]
+
+    SUPPORTED_REFERENCE_VERSION_TYPES = [
+        "stable",
+        "dev"
     ]
 
     DEFAULT_VERSION_FILE = ".comet.yml"
@@ -45,13 +44,16 @@ class SemVer(object):
             self,
             project_path: str = ".",
             version_files: list = [],
-            version_regex: str = ""
+            version_regex: str = "",
+            project_version_file: str = DEFAULT_VERSION_FILE,
+            reference_version_type: str = "stable"
     ):
         self.project_path = os.path.normpath(project_path)
         self.version_files = version_files
         self.version_regex = version_regex
         self.version_object = None
-        self.default_version_file_path = self.DEFAULT_VERSION_FILE
+        self.project_version_file = project_version_file
+        self.reference_version_type = reference_version_type
         self.release_version = None
         self.current_version = None
         self._pre_checks()
@@ -65,12 +67,13 @@ class SemVer(object):
     def _sanitize_version_file_paths(self):
         logger.debug(f"Sanitizing version files paths according to the project directory [{self.project_path}]")
         self.version_files = [os.path.normpath(f"{self.project_path}/{file}") for file in self.version_files]
-        self.default_version_file_path = os.path.normpath(f"{self.project_path}/{self.DEFAULT_VERSION_FILE}")
+        self.project_version_file = os.path.normpath(f"{self.DEFAULT_VERSION_FILE}")
 
     def _validate_default_version_file(self):
         try:
-            assert os.path.exists(self.default_version_file_path), \
-                f"Default Version file [{self.default_version_file_path}] not found!"
+            print(self.project_version_file)
+            assert os.path.exists(self.project_version_file), \
+                f"Default Version file [{self.project_version_file}] not found!"
             Version.parse(self._read_default_version_file())
             return True
         except (ValueError, AssertionError) as err:
@@ -87,6 +90,12 @@ class SemVer(object):
             logger.debug(err)
             return False
 
+    def _validate_reference_version_type(self):
+        assert self.reference_version_type in list(self.SUPPORTED_REFERENCE_VERSION_TYPES), \
+            f"Invalid reference version type" \
+            f"[{self.reference_version_type}({self.SUPPORTED_REFERENCE_VERSION_TYPES})] specified! " \
+            f"Supported values are [{','.join([str(i) for i in self.SUPPORTED_REFERENCE_VERSION_TYPES])}]"
+
     def _validate_pre_release_type(self, pre_release):
         try:
             assert pre_release in self.SUPPORTED_PRE_RELEASE_TYPES, \
@@ -99,31 +108,31 @@ class SemVer(object):
 
     def _initialize_default_version_file(self, version="0.1.0-dev.1"):
         try:
-            with open(self.default_version_file_path, 'a') as f:
+            with open(self.project_version_file, 'a') as f:
                 f.write(version)
             return True
         except OSError as err:
             logger.debug(err)
             return False
 
-    def _read_default_version_file(self):
+    def _read_default_version_file(self, version_type: str = "stable"):
         try:
             project_config = ConfigParser(
-                config_path=self.default_version_file_path
+                config_path=self.project_version_file
             )
             project_config.read_config()
-            return project_config.get_project_version(self.project_path)
+            return project_config.get_project_version(self.project_path, version_type=version_type)
         except OSError as err:
             logger.debug(err)
             raise
 
-    def _update_default_version_file(self):
+    def _update_default_version_file(self, version_type: str = "dev"):
         try:
             project_config = ConfigParser(
-                config_path=self.default_version_file_path
+                config_path=self.project_version_file
             )
             project_config.read_config()
-            project_config.update_project_version(self.project_path, self.get_version())
+            project_config.update_project_version(self.project_path, self.get_version(), )
         except OSError as err:
             logger.debug(err)
             raise
@@ -155,14 +164,14 @@ class SemVer(object):
     # TODO: Add comet config initialization
     def prepare_version(self):
         try:
+            self._validate_reference_version_type()
             if not self._validate_default_version_file():
                 # assert self._initialize_default_version_file(), "Default version file initialization failed!"
                 pass
-            version = self._read_default_version_file()
-            self.version_object = Version.parse(version)
+            self.version_object = Version.parse(self._read_default_version_file(version_type=self.reference_version_type))
         except (ValueError, AssertionError) as err:
             logger.error(
-                f"Failed to prepare the version using default version file [{self.default_version_file_path}]"
+                f"Failed to prepare the version using default version file [{self.project_version_file}]"
             )
             logger.debug(err)
             raise
@@ -212,20 +221,19 @@ class SemVer(object):
     #         f.write(data)
     #         f.truncate()
 
-    def update_version_files(self):
+    def update_version_files(self, version: str):
         try:
-            current_version = self._read_default_version_file()
             new_version = self.get_version()
             logger.info(f"Updating version files to the new version [{new_version}]")
             for file in self.version_files:
                 logger.debug(f"Updating the version file [{file}]")
                 with open(file, "r+") as f:
                     data = f.read()
-                    data = re.sub(f"{self.version_regex}{current_version}", f"{self.version_regex}{new_version}", data)
+                    data = re.sub(f"{self.version_regex}{version}", f"{self.version_regex}{new_version}", data)
                     f.seek(0)
                     f.write(data)
                     f.truncate()
-            logger.debug(f"Updating the default version file [{self.default_version_file_path}]")
+            logger.debug(f"Updating the default version file [{self.project_version_file}]")
             self._update_default_version_file()
         except OSError as err:
             logger.debug(err)

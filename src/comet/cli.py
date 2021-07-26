@@ -4,8 +4,10 @@ __author__ = 'Muneeb Ahmad'
 __version__ = '0.1.0'
 
 import sys
+import os
 import argparse
 from .work_flows import GitFlow
+from .config import ConfigParser
 import logging.config
 from colorama import Fore, Style
 import coloredlogs
@@ -91,14 +93,27 @@ def main():
             default="./.comet.yml",
             help="Git Project configuration file path"
         )
+        parser.add_argument(
+            "--init",
+            action="store_true",
+            help="Initialize Comet repository configuration if it doesn't exist (Interactive mode)"
+        )
         args = parser.parse_args()
         if args.debug:
             comet_logger.setLevel(logging.DEBUG)
             comet_logger.info("Comet log level set to debug")
         else:
             comet_logger.setLevel(logging.INFO)
-        # c = ConfigParser(config_path=".test_comet.yml")
-        # c.initialize_config()
+        if args.init:
+            logging.info(f"Initializing Comet configuration at [{args.project_config}]")
+            project_config = ConfigParser(config_path=args.project_config)
+            if os.path.exists(args.project_config):
+                logging.warning(f"Comet configuration is already initialized at [{args.project_config}]")
+                logging.warning(f"Skipping initialization...")
+            else:
+                logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
+                project_config.initialize_config()
+                project_config.write_config()
         gitflow = GitFlow(
             scm_provider=args.scm_provider,
             connection_type=args.connection_type,
@@ -117,6 +132,7 @@ def main():
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
+        raise
     except KeyboardInterrupt:
         comet_logger.error("Interrupted. Exiting...")
         sys.exit()

@@ -8,16 +8,15 @@ import os
 logger = logging.getLogger(__name__)
 
 
-# class YamlSchema(TypedDict):
-#     name: str
-#     path: str
-#     version_files: List[str]
-
-
 class ConfigParser(object):
 
     SUPPORTED_WORKFLOWS: list = [
         "gitflow"
+    ]
+
+    SUPPORTED_VERSION_TYPES: list = [
+        "stable",
+        "dev"
     ]
 
     SUPPORTED_CONFIG_SCHEMA: dict = {
@@ -55,13 +54,17 @@ class ConfigParser(object):
                 "items": {
                     "type": "object",
                     "required": [
-                        "version",
+                        "stable_version",
+                        "dev_version",
                         "version_regex",
                         "path",
                         "version_files"
                     ],
                     "properties": {
-                        "version": {
+                        "stable_version": {
+                            "type": "string"
+                        },
+                        "dev_version": {
                             "type": "string"
                         },
                         "version_regex": {
@@ -114,6 +117,19 @@ class ConfigParser(object):
             self.config["projects"][idx]["path"] = f"{os.path.join(os.path.dirname(self.config_path), project['path'])}"
         logger.debug(f"Sanitized project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
 
+    def _validate_project_path(self, project_path: str) -> None:
+        self._validate_config()
+        assert project_path in [project_dict["path"] for project_dict in self.config["projects"]], \
+            f"Project [{project_path}] not found! Please add the project to configuration file first."
+
+    def _lookup_project_version(self, project_path: str, version_type: str = "stable_version"):
+        assert version_type in ["stable_version", "dev_version"], \
+            f"Incorrect version type [{version_type}] is requested for lookup. " \
+            f"Supported values are [{','.join['stable_version', 'dev_version']}]"
+        for project_dict in self.config["projects"]:
+            if project_dict["path"] == project_path:
+                return project_dict[version_type]
+
     def initialize_config(self):
         try:
             self.config["strategy"] = input("Select workflow strategy [gitflow]: ") or "gitflow"
@@ -129,57 +145,56 @@ class ConfigParser(object):
                     continue
                 subprojects_info = {}
                 if subprojects == "no" and len(subprojects_info) == 0:
-                    subprojects_info["path"] = "."
-                    subprojects_info["version"] = "0.1.0"
-                    subprojects_info["version_regex"] = ""
-                    subprojects_info["version_files"] = []
+                    if len(subprojects_info) == 0:
+                        subprojects_info["path"] = "."
+                        subprojects_info["version"] = "0.1.0"
+                        subprojects_info["version_regex"] = ""
+                        subprojects_info["version_files"] = []
+                    break
                 if subprojects == "yes":
                     subprojects_info["path"] = input("Enter the path for sub-project: ")
                     subprojects_info["version"] = input("Enter the version for sub-project[0.1.0]: ") or "0.1.0"
                     subprojects_info["version_regex"] = input("Enter the version regex for sub-project[]: ") or ""
                     while True:
                         subprojects_info["version_files"] = []
-                        version_files = input("Do you have version files in the sub-project?(yes/no)[no]: ") or "no"
-                        if version_files not in ["yes", "no"]:
+                        add_version_files = input("Include a version file in the sub-project?(yes/no)[no]: ") or "no"
+                        if add_version_files not in ["yes", "no"]:
                             continue
-                        while True:
-                            add_version_files = input("Include a version file in the sub-project?(yes/no)[no]: ") or "no"
-                            if add_version_files not in ["yes", "no"]:
-                                continue
-                            elif add_version_files == "yes":
-                                subprojects_info["version_files"].append(
-                                    input("Enter the version file path relative to the sub-project?[]: ")
-                                )
-                            elif add_version_files == "no":
-                                break
-                        break
+                        elif add_version_files == "yes":
+                            subprojects_info["version_files"].append(
+                                input("Enter the version file path relative to the sub-project?[]: ")
+                            )
+                        elif add_version_files == "no":
+                            break
                 self.config["projects"].append(subprojects_info)
-                break
+
             self._validate_config()
         except AssertionError as err:
             logger.debug(err)
             raise
 
-    def get_project_version(self, project_path: str) -> str:
+    def get_project_version(self, project_path: str, version_type: str = "stable") -> str:
         try:
-            self._validate_config()
-            assert project_path in [project_dict["path"] for project_dict in self.config["projects"]], \
-                f"Project [{project_path}] not found! Please add the project to configuration file first."
-            for project_dict in self.config["projects"]:
-                if project_dict["path"] == project_path:
-                    return project_dict["version"]
+            assert version_type in ["stable", "dev"], \
+                f"Invalid version type is specified. " \
+                f"Support values are [{','.join(['stable', 'dev'])}]"
+            self._validate_project_path(project_path)
+            return self._lookup_project_version(project_path, version_type=f"{version_type}_version")
         except AssertionError as err:
             logger.debug(err)
-            raise Exception(f"Failed to get version from the YAML configuration file")
+            raise Exception(f"Failed to get {version_type} version from the YAML configuration file")
 
-    def update_project_version(self, project_path: str, version: str) -> None:
+    def update_project_version(self, project_path: str, version: str, version_type: str = "dev") -> None:
         try:
             self._validate_config()
+            assert version_type in ["stable", "dev"], \
+                f"Invalid version type is specified. " \
+                f"Support values are [{','.join(['stable', 'dev'])}]"
             assert project_path in [project_dict["path"] for project_dict in self.config["projects"]], \
                 f"Project [{project_path}] not found! Please add the project to configuration file first."
             for idx, project_dict in enumerate(self.config["projects"]):
                 if project_dict["path"] == project_path:
-                    self.config["projects"][idx]["version"] = version
+                    self.config["projects"][idx][f"{version_type}_version"] = version
             self.write_config()
         except AssertionError as err:
             logger.debug(err)
