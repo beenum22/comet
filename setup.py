@@ -43,15 +43,14 @@ setup(
     packages=find_packages(where="src"),
     python_requires=">=3.6",
     install_requires=[
-        "PyCryptodome",
-        "colorama",
-        "coloredlogs",
-        "PyYAML",
-        "jsonschema",
-        "semver",
-        "GitPython",
-        "paramiko",
-        "requests"
+        "colorama==0.4.4",
+        "coloredlogs==15.0.1",
+        "PyYAML==5.1",
+        "jsonschema==3.2.0",
+        "semver==3.0.0.dev2",
+        "GitPython==3.1.18",
+        "paramiko==2.7.2",
+        "requests==2.25.0"
     ],
     zip_safe=False
 )
