@@ -91,14 +91,6 @@ def main():
             default="./.comet.yml",
             help="Git Project configuration file path"
         )
-        parser.add_argument(
-            "--workflow",
-            required=True,
-            choices=[
-                "development"
-            ],
-            help="Work flow to execute"
-        )
         args = parser.parse_args()
         if args.debug:
             comet_logger.setLevel(logging.DEBUG)
