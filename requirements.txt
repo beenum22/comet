@@ -1,8 +1,12 @@
-GitPython
-paramiko
-requests
 logging
 colorama
 coloredlogs
+yaml
+jsonschema
+socket
+semver
+GitPython
+paramiko
+requests
 
 pip

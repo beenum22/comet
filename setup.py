@@ -26,29 +26,20 @@ def get_requirements():
 pkgs, links = get_requirements()
 
 setup(
-    name='sicuro',
+    name='comet',
         version='0.1.0',
     license='LICENSE',
-        description='Sicuro is a simple tool to secure your sensitive data using the Advanced Encryption Standard (AES) ciphering technique.',
+        description='Comet is a simple tool to automate/facilitate automated release cycle.',
         long_description=readme(),
-        url='http://github.com/beenum22/sicuro',
+        url='http://github.com/beenum22/comet',
         author='Muneeb Ahmad',
         author_email='muneeb.gandapur@gmail.com',
         entry_points = {
-                'console_scripts': ['sicuro=sicuro.sicuro:main']
+                'console_scripts': ['comet=comet.comet:main']
         },
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.6",
-    # package_data= {
-    #     "sicuro": [
-    #         "LICENSE",
-    #         "pyproject.toml",
-    #         "MANIFEST.in",
-    #         "README.rst",
-    #         "requirements.txt",
-    #         "sicuro/src/*"
-    #     ]},
         install_requires=[
             "PyCryptodome",
             "colorama",
