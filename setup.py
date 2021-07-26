@@ -43,6 +43,14 @@ setup(
         install_requires=[
             "PyCryptodome",
             "colorama",
-            "coloredlogs"
+            "coloredlogs",
+            "logging",
+            "yaml",
+            "jsonschema",
+            "socket",
+            "semver",
+            "GitPython",
+            "paramiko",
+            "requests"
         ],
         zip_safe=False)
