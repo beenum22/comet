@@ -200,7 +200,7 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Failed to update version in the YAML configuration file")
 
-    def read_config(self, sanitize=False):
+    def read_config(self, sanitize=True):
         try:
             assert os.path.exists(self.config_path), f"Unable to find the YAML configuration file [{self.config_path}]"
             with open(self.config_path) as f:

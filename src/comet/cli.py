@@ -81,11 +81,15 @@ def main():
             default="~/.ssh/id_rsa",
             help="Git SSH local private key path"
             )
+        # NOTE: Support for running Comet from any directory is disabled for now
         parser.add_argument(
             "-rlp",
             "--repo-local-path",
             default="./",
-            help="Git Repository local path"
+            choices=[
+              "./"
+            ],
+            help="Git Repository local path (Support for running Comet any path other than './' is disabled for now)"
             )
         parser.add_argument(
             "-pc",
@@ -132,7 +136,6 @@ def main():
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
-        raise
     except KeyboardInterrupt:
         comet_logger.error("Interrupted. Exiting...")
         sys.exit()

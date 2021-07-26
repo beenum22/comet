@@ -67,11 +67,10 @@ class SemVer(object):
     def _sanitize_version_file_paths(self):
         logger.debug(f"Sanitizing version files paths according to the project directory [{self.project_path}]")
         self.version_files = [os.path.normpath(f"{self.project_path}/{file}") for file in self.version_files]
-        self.project_version_file = os.path.normpath(f"{self.DEFAULT_VERSION_FILE}")
+        self.project_version_file = os.path.normpath(f"{self.project_version_file}")
 
     def _validate_default_version_file(self):
         try:
-            print(self.project_version_file)
             assert os.path.exists(self.project_version_file), \
                 f"Default Version file [{self.project_version_file}] not found!"
             Version.parse(self._read_default_version_file())
@@ -132,7 +131,7 @@ class SemVer(object):
                 config_path=self.project_version_file
             )
             project_config.read_config()
-            project_config.update_project_version(self.project_path, self.get_version(), )
+            project_config.update_project_version(self.project_path, self.get_version(), version_type)
         except OSError as err:
             logger.debug(err)
             raise

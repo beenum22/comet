@@ -87,9 +87,9 @@ class GitFlow(object):
             )
             for project in self.project_config.config["projects"]:
                 self.projects_semver_objects[project["path"]] = SemVer(
-                    project_path=f"{self.project_local_path}/{project['path']}",
+                    project_path=project["path"],
                     version_files=project["version_files"],
-                    project_version_file=os.path.join(self.project_local_path, self.project_config_path)
+                    project_version_file=self.project_config_path
                 )
         except Exception:
             raise
@@ -125,7 +125,6 @@ class GitFlow(object):
                     continue
                 else:
                     past_bump = next_bump
-            print(self.projects_semver_objects[project["path"]]._read_default_version_file())
             self.projects_semver_objects[project["path"]].update_version_files(
                 self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
             )
