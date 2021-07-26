@@ -44,7 +44,6 @@ setup(
             "PyCryptodome",
             "colorama",
             "coloredlogs",
-            "logging",
             "PyYAML",
             "jsonschema",
             "semver",

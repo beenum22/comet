@@ -1,4 +1,3 @@
-logging
 colorama
 coloredlogs
 PyYAML
