@@ -35,7 +35,7 @@ setup(
         author='Muneeb Ahmad',
         author_email='muneeb.gandapur@gmail.com',
         entry_points = {
-                'console_scripts': ['comet=comet.comet:main']
+                'console_scripts': ['comet=main:main']
         },
     package_dir={"": "src"},
     packages=find_packages(where="src"),
