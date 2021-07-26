@@ -47,7 +47,6 @@ setup(
             "logging",
             "PyYAML",
             "jsonschema",
-            "socket",
             "semver",
             "GitPython",
             "paramiko",
