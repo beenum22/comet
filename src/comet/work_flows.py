@@ -37,9 +37,7 @@ class GitFlow(object):
         self.project_local_path = project_local_path
         self.scm = None
         self.project_config = {}
-        self.projects_semver_objects = {
-            "bgcf": {}
-        }
+        self.projects_semver_objects = {}
         self.prepare_workflow()
 
     def _sanitize_paths(self) -> None:
