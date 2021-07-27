@@ -85,11 +85,22 @@ class GitFlow(object):
                 development_branch=self.project_config.config["development_branch"],
                 stable_branch=self.project_config.config["stable_branch"]
             )
+        except Exception:
+            raise
+
+    def prepare_versioning(self, reference_version_type: str = "stable") -> None:
+        try:
+            assert reference_version_type in ConfigParser.SUPPORTED_VERSION_TYPES, \
+                f"Invalid reference version type" \
+                f"[{reference_version_type}({ConfigParser.SUPPORTED_VERSION_TYPES})] specified! " \
+                f"Supported values are [{','.join([str(i) for i in ConfigParser.SUPPORTED_VERSION_TYPES])}]"
             for project in self.project_config.config["projects"]:
                 self.projects_semver_objects[project["path"]] = SemVer(
                     project_path=project["path"],
                     version_files=project["version_files"],
-                    project_version_file=self.project_config_path
+                    version_regex=project["version_regex"],
+                    project_version_file=self.project_config_path,
+                    reference_version_type=reference_version_type
                 )
         except Exception:
             raise
@@ -100,10 +111,9 @@ class GitFlow(object):
 
     def default_flow(self):
         logger.info("Executing default GitFlow")
+        self.prepare_versioning("dev")
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            past_bump = SemVer.NO_CHANGE
-            current_bump = SemVer.NO_CHANGE
             commits = self.scm.find_new_commits(
                 self.scm.source_branch,
                 self.scm.development_branch,
@@ -112,10 +122,7 @@ class GitFlow(object):
             for commit in commits:
                 next_bump = ConventionalCommits.get_bump_type(commit.message)
                 logger.debug(
-                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
-                    f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
-                    f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
-                    f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
+                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}"
                 )
                 if next_bump == SemVer.NO_CHANGE:
                     continue
@@ -123,6 +130,7 @@ class GitFlow(object):
                 self.projects_semver_objects[project["path"]].bump_version(
                     release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.source_branch.replace('/', '_')}")
             if len(commits) > 0:
+                logger.debug(f"New Version: {self.projects_semver_objects[project['path']].get_version()}")
                 self.projects_semver_objects[project["path"]].update_version_files(
                     self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
                 )
@@ -133,11 +141,12 @@ class GitFlow(object):
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=True
+                push=False
             )
 
     def development_flow(self):
         logger.info("Executing Development branch GitFlow")
+        self.prepare_versioning("dev")
         changed_projects = []
         for project in self.project_config.config["projects"]:
             past_bump = SemVer.NO_CHANGE
@@ -174,7 +183,7 @@ class GitFlow(object):
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=True
+                push=False
             )
 
 
