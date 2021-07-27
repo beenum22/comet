@@ -126,7 +126,7 @@ class GitFlow(object):
                     continue
                 print(self.scm.source_branch)
                 self.projects_semver_objects[project["path"]].bump_version(
-                    release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.source_branch.replace('/', '_')}")
+                    release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.get_active_branch_hex()}")
             if len(commits) > 0:
                 logger.debug(f"New Version: {self.projects_semver_objects[project['path']].get_version()}")
                 self.projects_semver_objects[project["path"]].update_version_files(

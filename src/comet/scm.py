@@ -296,6 +296,9 @@ class Scm(object):
     def get_active_branch(self):
         return str(self.repo_object.active_branch)
 
+    def get_active_branch_hex(self):
+        return str(self.repo_object.active_branch.object.hexsha)
+
     def get_latest_tag(self):
         tag = None
         if len(self.repo_object.tags) > 0:
