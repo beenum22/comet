@@ -274,7 +274,7 @@ class Scm(object):
         commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path)]
         return commits
 
-    def commit_changes(self, msg: str = "chore: commit changes", *paths: list) -> None:
+    def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False) -> None:
         try:
             repo_changed_files = [item.a_path for item in self.repo_object.index.diff(None)]
             project_staged_files = [path for path in paths if path in repo_changed_files]
@@ -282,6 +282,8 @@ class Scm(object):
                 logger.info(f"Committing path [{[path for path in paths]}] changes")
                 self.repo_object.git.add(paths)
                 self.repo_object.git.commit("-m", msg)
+                if push:
+                    self.push_changes()
             else:
                 logger.warning(f"No commits found for project files {','.join(paths)}")
         except GitError as err:
