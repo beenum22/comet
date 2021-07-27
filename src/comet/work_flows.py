@@ -134,7 +134,7 @@ class GitFlow(object):
             for project in changed_projects:
                 self.scm.commit_changes(
                     f"chore: update comet config and project version files for {', '.join(changed_projects)}",
-                    project["path"],
+                    self.project_config_path,
                     changed_projects,
                     push=True
                 )
