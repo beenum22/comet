@@ -131,13 +131,12 @@ class GitFlow(object):
             )
             changed_projects.append(project['path'])
         if len(changed_projects) > 0:
-            for project in changed_projects:
-                self.scm.commit_changes(
-                    f"chore: update comet config and project version files for {', '.join(changed_projects)}",
-                    self.project_config_path,
-                    changed_projects,
-                    push=True
-                )
+            self.scm.commit_changes(
+                f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                self.project_config_path,
+                changed_projects,
+                push=True
+            )
 
 
 
