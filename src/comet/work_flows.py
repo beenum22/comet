@@ -107,6 +107,10 @@ class GitFlow(object):
         logger.warning("Stable branch GitFlow is under-development")
         # logger.info("Executing Stable branch GitFlow")
 
+    def release_flow(self):
+        logger.warning("Release branches GitFlows are under-development")
+        # logger.info("Executing Stable branch GitFlow")
+
     def default_flow(self):
         logger.info("Executing default GitFlow")
         self.prepare_versioning("dev")
