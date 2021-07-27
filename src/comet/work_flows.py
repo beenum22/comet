@@ -100,6 +100,7 @@ class GitFlow(object):
 
     def development_flow(self):
         logger.info("Executing Development branch GitFlow")
+        changed_projects = []
         for project in self.project_config.config["projects"]:
             past_bump = SemVer.NO_CHANGE
             current_bump = SemVer.NO_CHANGE
@@ -128,10 +129,15 @@ class GitFlow(object):
             self.projects_semver_objects[project["path"]].update_version_files(
                 self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
             )
-            self.scm.commit_changes(
-                f"chore: update comet config and project version files for {project['path']}\n\n[skip ci]",
-                project["path"],
-                self.project_config_path,
-                push=True
-            )
+            changed_projects.append(project['path'])
+        if len(changed_projects) > 0:
+            for project in changed_projects:
+                self.scm.commit_changes(
+                    f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                    project["path"],
+                    changed_projects,
+                    push=True
+                )
+
+
 

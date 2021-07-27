@@ -279,7 +279,7 @@ class Scm(object):
             repo_changed_files = [item.a_path for item in self.repo_object.index.diff(None)]
             project_staged_files = [path for path in paths if path in repo_changed_files]
             if len(project_staged_files) > 0:
-                logger.info(f"Committing path [{[path for path in paths]}] changes")
+                logger.info(f"Committing path/s [{[path for path in paths]}] changes")
                 self.repo_object.git.add(paths)
                 self.repo_object.git.commit("-m", msg)
                 if push:
