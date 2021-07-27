@@ -133,7 +133,7 @@ class GitFlow(object):
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=False
+                push=True
             )
 
     def development_flow(self):
@@ -174,7 +174,7 @@ class GitFlow(object):
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=False
+                push=True
             )
 
 

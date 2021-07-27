@@ -218,10 +218,7 @@ class SemVer(object):
 
     def update_version_files(self, version: str):
         try:
-            print(f"NEW VERSION: {version}")
-            print(f"CURRENT VERSION REGEX: {self.version_regex}{version}")
             new_version = self.get_version()
-            print(f"NEW VERSION REGEX: {self.version_regex}{new_version}")
             logger.info(f"Updating version files to the new version [{new_version}]")
             for file in self.version_files:
                 logger.debug(f"Updating the version file [{file}]")
