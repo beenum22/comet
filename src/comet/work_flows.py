@@ -131,10 +131,11 @@ class GitFlow(object):
             )
             changed_projects.append(project['path'])
         if len(changed_projects) > 0:
+            logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
             self.scm.commit_changes(
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
-                changed_projects,
+                *changed_projects,
                 push=True
             )
 
