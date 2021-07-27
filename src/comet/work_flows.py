@@ -119,19 +119,21 @@ class GitFlow(object):
                 )
                 if next_bump == SemVer.NO_CHANGE:
                     continue
+                print(self.scm.source_branch)
                 self.projects_semver_objects[project["path"]].bump_version(
                     release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.source_branch.replace('/', '_')}")
-            self.projects_semver_objects[project["path"]].update_version_files(
-                self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
-            )
-            changed_projects.append(project['path'])
+            if len(commits) > 0:
+                self.projects_semver_objects[project["path"]].update_version_files(
+                    self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
+                )
+                changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
             self.scm.commit_changes(
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=True
+                push=False
             )
 
     def development_flow(self):
@@ -172,7 +174,7 @@ class GitFlow(object):
                 f"chore: update comet config and project version files for {', '.join(changed_projects)}",
                 self.project_config_path,
                 *changed_projects,
-                push=True
+                push=False
             )
 
 
