@@ -98,6 +98,42 @@ class GitFlow(object):
         logger.warning("Stable branch GitFlow is under-development")
         # logger.info("Executing Stable branch GitFlow")
 
+    def default_flow(self):
+        logger.info("Executing default GitFlow")
+        changed_projects = []
+        for project in self.project_config.config["projects"]:
+            past_bump = SemVer.NO_CHANGE
+            current_bump = SemVer.NO_CHANGE
+            commits = self.scm.find_new_commits(
+                self.scm.source_branch,
+                self.scm.development_branch,
+                project["path"]
+            )
+            for commit in commits:
+                next_bump = ConventionalCommits.get_bump_type(commit.message)
+                logger.debug(
+                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
+                    f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
+                    f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
+                    f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
+                )
+                if next_bump == SemVer.NO_CHANGE:
+                    continue
+                self.projects_semver_objects[project["path"]].bump_version(
+                    release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.source_branch.replace('/', '_')}")
+            self.projects_semver_objects[project["path"]].update_version_files(
+                self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
+            )
+            changed_projects.append(project['path'])
+        if len(changed_projects) > 0:
+            logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            self.scm.commit_changes(
+                f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                self.project_config_path,
+                *changed_projects,
+                push=True
+            )
+
     def development_flow(self):
         logger.info("Executing Development branch GitFlow")
         changed_projects = []

@@ -132,7 +132,7 @@ def main():
         elif gitflow.scm.source_branch == gitflow.project_config.config["stable_branch"]:
             gitflow.stable_flow()
         else:
-            logging.warning(f"No work flow is implemented for the branch [{gitflow.scm.source_branch}]")
+            gitflow.default_flow()
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)

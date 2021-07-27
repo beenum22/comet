@@ -12,10 +12,11 @@ logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 class SemVer(object):
 
-    MAJOR = 4
-    MINOR = 3
-    PATCH = 2
-    PRE_RELEASE = 1
+    MAJOR = 5
+    MINOR = 4
+    PATCH = 3
+    PRE_RELEASE = 2
+    BUILD = 1
     NO_CHANGE = 0
 
     SUPPORTED_RELEASE_TYPES = {
@@ -23,6 +24,7 @@ class SemVer(object):
         MINOR: "minor",
         PATCH: "patch",
         PRE_RELEASE: "pre_release",
+        BUILD: "build",
         NO_CHANGE: "no_change"
     }
 
@@ -190,7 +192,7 @@ class SemVer(object):
             logger.debug(err)
             raise
 
-    def bump_version(self, release=PRE_RELEASE, pre_release=None):
+    def bump_version(self, release: int = PRE_RELEASE, pre_release: str = None, build_metadata: str = None):
         try:
             assert self._validate_release_type(release), "Release type validation failed!"
             if pre_release:
@@ -203,6 +205,8 @@ class SemVer(object):
                 self.version_object = self.version_object.bump_patch()
             elif release == self.PRE_RELEASE:
                 self.version_object = self.version_object.bump_prerelease(pre_release)
+            elif release == self.BUILD:
+                self.version_object = self.version_object.bump_build(build_metadata)
             if pre_release and release in [self.MAJOR, self.MINOR, self.PATCH]:
                 self.version_object = self.version_object.bump_prerelease(pre_release)
         except AssertionError as err:
