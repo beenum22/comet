@@ -129,7 +129,7 @@ class GitFlow(object):
                 self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
             )
             self.scm.commit_changes(
-                f"chore: update comet config and project version files for {project['path']}",
+                f"chore: update comet config and project version files for {project['path']}\n\n[skip ci]",
                 project["path"],
                 self.project_config_path,
                 push=True
