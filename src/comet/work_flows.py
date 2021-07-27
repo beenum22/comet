@@ -144,7 +144,7 @@ class GitFlow(object):
 
     def development_flow(self):
         logger.info("Executing Development branch GitFlow")
-        self.prepare_versioning("dev")
+        self.prepare_versioning("stable")
         changed_projects = []
         for project in self.project_config.config["projects"]:
             past_bump = SemVer.NO_CHANGE

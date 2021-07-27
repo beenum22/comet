@@ -271,7 +271,7 @@ class Scm(object):
             f"Looking for new commits on [{path}] project path on source branch "
             f"[{source_branch}] compared to reference branch [{reference_branch}]")
         commit_range = f"{reference_branch}...{source_branch}"
-        commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path)]
+        commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path, reverse=True)]
         return commits
 
     def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False) -> None:
