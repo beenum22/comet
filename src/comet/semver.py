@@ -216,14 +216,6 @@ class SemVer(object):
             logger.debug(err)
             raise
 
-    # def _update_version_string_in_file(self, file: str, current_version: str, new_version):
-    #     with open(file, "r+") as f:
-    #         data = f.read()
-    #         data = re.sub(current_version, new_version, data)
-    #         f.seek(0)
-    #         f.write(data)
-    #         f.truncate()
-
     def update_version_files(self, version: str):
         try:
             new_version = self.get_version()
@@ -232,7 +224,7 @@ class SemVer(object):
                 logger.debug(f"Updating the version file [{file}]")
                 with open(file, "r+") as f:
                     data = f.read()
-                    data = re.sub(f"{self.version_regex}{version}", f"{self.version_regex}{new_version}", data)
+                    data = re.sub(f"{re.escape(self.version_regex + version)}", f"{self.version_regex}{new_version}", data)
                     f.seek(0)
                     f.write(data)
                     f.truncate()
