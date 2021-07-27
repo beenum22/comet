@@ -144,16 +144,19 @@ class ConfigParser(object):
                 if subprojects not in ["yes", "no"]:
                     continue
                 subprojects_info = {}
-                if subprojects == "no" and len(subprojects_info) == 0:
+                if subprojects == "no":
                     if len(subprojects_info) == 0:
                         subprojects_info["path"] = "."
-                        subprojects_info["version"] = "0.1.0"
+                        subprojects_info["stable_version"] = "0.0.0"
+                        subprojects_info["dev_version"] = "0.0.0-dev.1"
                         subprojects_info["version_regex"] = ""
                         subprojects_info["version_files"] = []
+                    self.config["projects"].append(subprojects_info)
                     break
                 if subprojects == "yes":
                     subprojects_info["path"] = input("Enter the path for sub-project: ")
-                    subprojects_info["version"] = input("Enter the version for sub-project[0.1.0]: ") or "0.1.0"
+                    subprojects_info["stable_version"] = input("Enter the stable version for sub-project[0.0.0]: ") or "0.0.0"
+                    subprojects_info["dev_version"] = input("Enter the dev version for sub-project[0.0.0]: ") or "0.0.0-dev.1"
                     subprojects_info["version_regex"] = input("Enter the version regex for sub-project[]: ") or ""
                     while True:
                         subprojects_info["version_files"] = []
