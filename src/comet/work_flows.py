@@ -103,16 +103,85 @@ class GitFlow(object):
         except Exception:
             raise
 
-    def stable_flow(self):
-        logger.warning("Stable branch GitFlow is under-development")
-        # logger.info("Executing Stable branch GitFlow")
+    def release_flow(self, branches: bool = False):
+        logger.warning("Release GitFlow is under-development")
+        # if branches:
+        #     assert len(self.project_config.config["projects"]) > 0, \
+        #         f"Release flow is currently supported for repositories with one project only"
+        # self.prepare_versioning("dev")
+        # changed_projects = []
+        # for project in self.project_config.config["projects"]:
+        #     release_candidate = self.projects_semver_objects[project['path']].get_version()
+        #     logger.info(f"Creating a Release candidate [{release_candidate}]")
+        #     self.scm.add_branch(f"{self.project_config.config['release_branch_prefix']}/{release_candidate}")
+        #     self.projects_semver_objects[project["path"]].bump_version(
+        #         release=SemVer.PRE_RELEASE, pre_release="rc")
+        #     self.projects_semver_objects[project["path"]].update_version_files(
+        #         self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
+        #     )
+        #         changed_projects.append(project['path'])
+        # if len(changed_projects) > 0:
+        #     logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+        #     self.scm.commit_changes(
+        #         f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+        #         self.project_config_path,
+        #         *changed_projects,
+        #         push=True
+        #     )
 
-    def release_flow(self):
-        logger.warning("Release branches GitFlows are under-development")
-        # logger.info("Executing Stable branch GitFlow")
+    def branch_flows(self):
+        if self.scm.source_branch == self.project_config.config["development_branch"]:
+            self.development_branch_flow()
+        elif self.scm.source_branch == self.project_config.config["stable_branch"]:
+            self.stable_branch_flow()
+        else:
+            self.default_branch_flow()
 
-    def default_flow(self):
-        logger.info("Executing default GitFlow")
+    def stable_branch_flow(self):
+        # logger.warning("Stable branch GitFlow is under-development")
+        logger.info("Executing Stable branch GitFlow")
+        self.prepare_versioning("stable")
+        changed_projects = []
+        for project in self.project_config.config["projects"]:
+            past_bump = SemVer.NO_CHANGE
+            current_bump = SemVer.NO_CHANGE
+            commits = self.scm.find_new_commits(
+                self.scm.development_branch,
+                self.scm.stable_branch,
+                project["path"]
+            )
+            for commit in commits:
+                next_bump = ConventionalCommits.get_bump_type(commit.message)
+                logger.debug(
+                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
+                    f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
+                    f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
+                    f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
+                )
+                if next_bump == SemVer.NO_CHANGE:
+                    continue
+                current_bump = self.projects_semver_objects[project["path"]].compare_bumps(past_bump, next_bump)
+                self.projects_semver_objects[project["path"]].bump_version(
+                    release=current_bump, pre_release=None)
+                if current_bump == SemVer.PRE_RELEASE and past_bump > next_bump:
+                    continue
+                else:
+                    past_bump = next_bump
+            self.projects_semver_objects[project["path"]].update_version_files(
+                self.projects_semver_objects[project["path"]]._read_default_version_file(version_type="dev")
+            )
+            changed_projects.append(project['path'])
+        if len(changed_projects) > 0:
+            logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            self.scm.commit_changes(
+                f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                self.project_config_path,
+                *changed_projects,
+                push=True
+            )
+
+    def default_branch_flow(self):
+        logger.info("Executing default branch GitFlow")
         self.prepare_versioning("dev")
         changed_projects = []
         for project in self.project_config.config["projects"]:
@@ -128,7 +197,6 @@ class GitFlow(object):
                 )
                 if next_bump == SemVer.NO_CHANGE:
                     continue
-                print(self.scm.source_branch)
                 self.projects_semver_objects[project["path"]].bump_version(
                     release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.get_active_branch_hex()}")
             if len(commits) > 0:
@@ -140,13 +208,13 @@ class GitFlow(object):
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
             self.scm.commit_changes(
-                f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                f"chore: update comet config and project version files for {', '.join(changed_projects)}\n\n[skip ci]",
                 self.project_config_path,
                 *changed_projects,
                 push=True
             )
 
-    def development_flow(self):
+    def development_branch_flow(self):
         logger.info("Executing Development branch GitFlow")
         self.prepare_versioning("stable")
         changed_projects = []
@@ -182,11 +250,8 @@ class GitFlow(object):
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
             self.scm.commit_changes(
-                f"chore: update comet config and project version files for {', '.join(changed_projects)}",
+                f"chore: update comet config and project version files for {', '.join(changed_projects)}\n\n[skip ci]",
                 self.project_config_path,
                 *changed_projects,
                 push=True
             )
-
-
-

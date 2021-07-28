@@ -89,7 +89,8 @@ def main():
             choices=[
               "./"
             ],
-            help="Git Repository local path (Support for running Comet any path other than './' is disabled for now)"
+            help="Git Repository local path (Support for running Comet for "
+                 "any path other than './' is disabled for now)"
             )
         parser.add_argument(
             "-pc",
@@ -98,9 +99,18 @@ def main():
             help="Git Project configuration file path"
         )
         parser.add_argument(
-            "--init",
-            action="store_true",
-            help="Initialize Comet repository configuration if it doesn't exist (Interactive mode)"
+            "--run",
+            required=True,
+            choices=[
+                "init",
+                "branch-flow",
+                "release-candidate",
+                "release"
+            ],
+            help="Comet action to execute.\n"
+                 "init: Initialize Comet repository configuration if it doesn't exist (Interactive mode)"
+                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s"
+                 "release-flow: Create Release branches for Comet managed project/s"
         )
         args = parser.parse_args()
         if args.debug:
@@ -108,8 +118,7 @@ def main():
             comet_logger.info("Comet log level set to debug")
         else:
             comet_logger.setLevel(logging.INFO)
-        if args.init:
-            logging.info(f"Initializing Comet configuration at [{args.project_config}]")
+        if args.run == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
                 logging.warning(f"Comet configuration is already initialized at [{args.project_config}]")
@@ -118,21 +127,22 @@ def main():
                 logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
                 project_config.initialize_config()
                 project_config.write_config()
-        gitflow = GitFlow(
-            scm_provider=args.scm_provider,
-            connection_type=args.connection_type,
-            username=args.username,
-            password=args.password,
-            ssh_private_key_path=args.ssh_private_key_path,
-            project_local_path=args.repo_local_path,
-            project_config_path=args.project_config
-        )
-        if gitflow.scm.source_branch == gitflow.project_config.config["development_branch"]:
-            gitflow.development_flow()
-        elif gitflow.scm.source_branch == gitflow.project_config.config["stable_branch"]:
-            gitflow.stable_flow()
-        else:
-            gitflow.default_flow()
+        elif args.run in ["branch-flow", "release-candidate", "release"]:
+            gitflow = GitFlow(
+                scm_provider=args.scm_provider,
+                connection_type=args.connection_type,
+                username=args.username,
+                password=args.password,
+                ssh_private_key_path=args.ssh_private_key_path,
+                project_local_path=args.repo_local_path,
+                project_config_path=args.project_config
+            )
+        if args.run == "branch-flow":
+            gitflow.branch_flows()
+        elif args.run == "release-candidate":
+            gitflow.release_flow(branches=True)
+        elif args.run == "release":
+            gitflow.release_flow(branches=False)
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
