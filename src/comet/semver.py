@@ -192,6 +192,7 @@ class SemVer(object):
             logger.debug(err)
             raise
 
+    # TODO: Allow changing pre_release type for versions with pre_release defined
     def bump_version(self, release: int = PRE_RELEASE, pre_release: str = None, build_metadata: str = None):
         try:
             assert self._validate_release_type(release), "Release type validation failed!"

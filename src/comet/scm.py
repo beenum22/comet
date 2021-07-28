@@ -317,8 +317,13 @@ class Scm(object):
     def add_tag(self, name):
         pass
 
-    def add_branch(self, name):
-        pass
+    def add_branch(self, branch):
+        try:
+            logger.info(f"Creating a Git branch [{branch}]")
+            self.repo_object.create_head(branch)
+        except GitError as err:
+            logger.debug(err)
+            raise
 
     def push_changes(self):
         try:
