@@ -133,8 +133,8 @@ class ConfigParser(object):
     def initialize_config(self):
         try:
             self.config["strategy"] = input("Select workflow strategy [gitflow]: ") or "gitflow"
-            self.config["repo"] = input("Enter the name of the SCM provider workspace/userspace [ngvoice]: ") or "ngvoice"
-            self.config["workspace"] = input("Enter the name of the repository[ansible_k8s_ims]: ") or "ansible_k8s_ims"
+            self.config["workspace"] = input("Enter the name of the SCM provider workspace/userspace [ngvoice]: ") or "ngvoice"
+            self.config["repo"] = input("Enter the name of the repository[ansible_k8s_ims]: ") or "ansible_k8s_ims"
             self.config["stable_branch"] = input("Enter the name of the stable branch[master]: ") or "master"
             self.config["development_branch"] = input("Enter the name of the development branch[develop]: ") or "develop"
             self.config["release_branch_prefix"] = input("Enter the prefix for release branches[release]: ") or "release"
