@@ -25,6 +25,7 @@ def get_requirements():
         raise Exception("Error parsing requirements.txt. Check its availability.")
     return pkgs, links
 
+
 pkgs, links = get_requirements()
 
 setup(

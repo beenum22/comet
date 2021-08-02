@@ -1,0 +1,13 @@
+strategy: gitflow
+workspace: ngvoice
+repo: comet
+stable_branch: master
+development_branch: develop
+release_branch_prefix: release
+projects:
+- path: .
+  stable_version: 0.1.0
+  dev_version: 0.1.0-dev.1
+  version_regex: version='
+  version_files:
+    - setup.py
