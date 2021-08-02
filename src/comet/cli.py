@@ -30,16 +30,13 @@ Copyright 2021 Muneeb Ahmad
 
 
 def main():
-    # formatter = "%(asctime)s %(name)s - %(levelname)s - %(message)s"
     comet_logger = logging.getLogger()
     # coloredlogs.install(fmt="%(asctime)s %(name)s - %(levelname)s - %(message)s", level='DEBUG')
     coloredlogs.install(fmt="%(levelname)s - %(message)s", level='DEBUG')
-    banner()
     try:
-        usage = ('python %prog <add variables here>')
         parser = argparse.ArgumentParser(
             prog="comet",
-            description="WIP")
+            description=banner())
         parser.add_argument(
             "--version",
             action="version",
@@ -112,9 +109,9 @@ def main():
                 "release"
             ],
             help="Comet action to execute.\n"
-                 "init: Initialize Comet repository configuration if it doesn't exist (Interactive mode)"
-                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s"
-                 "release-flow: Create Release branches for Comet managed project/s"
+                 "[init: Initialize Comet repository configuration if it doesn't exist (Interactive mode), "
+                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s,"
+                 "release-flow: Create Release branches for Comet managed project/s]"
         )
         args = parser.parse_args()
         if args.debug:
