@@ -24,6 +24,7 @@ def banner():
 {Style.RESET_ALL}
 {Fore.LIGHTWHITE_EX}
 Comet is a simple tool to automate/facilitate release cycle.
+Happy Versioning!
 
 Copyright 2021 Muneeb Ahmad
 {Style.RESET_ALL}""")
