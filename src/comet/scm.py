@@ -144,7 +144,7 @@ class Scm(object):
     def _validate_repo_local_path(self) -> None:
         try:
             repo_object = Repo(self.repo_local_path)
-            assert os.path.basename(repo_object.remotes[0].config_reader.get("url").strip(".git")) == self.repo, \
+            assert os.path.basename(repo_object.remotes[0].config_reader.get("url").replace(".git", "")) == self.repo, \
                 f"The specified repository path [{self.repo_local_path}] contains a different Git repository"
         except AssertionError as err:
             raise ScmException(err)
