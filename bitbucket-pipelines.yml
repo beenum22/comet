@@ -61,7 +61,7 @@ definitions:
             --password ${BITBUCKET_APP_PASSWORD}
             --connection-type https
         artifacts:
-          - .comet.yml
+          - ".comet.yml"
 
     - step: &build-and-push-comet
         name: Build & Push Comet
@@ -88,7 +88,7 @@ definitions:
             -f Dockerfile .
           - docker push ${IMAGE_NAME}:${IMAGE_TAG}
           - >-
-            if [[ -v STABLE_BRANCH ]];
+            if [[ -v STABLE_BRANCH ]]; then
               docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
               docker push ${IMAGE_NAME}:latest
             fi
