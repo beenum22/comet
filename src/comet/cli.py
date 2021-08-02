@@ -23,7 +23,7 @@ def banner():
  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝   
 {Style.RESET_ALL}
 {Fore.LIGHTWHITE_EX}
-Comet is a simple tool to automate/facilitate automated release cycle.
+Comet is a simple tool to automate/facilitate release cycle.
 
 Copyright 2021 Muneeb Ahmad
 {Style.RESET_ALL}""")
@@ -46,6 +46,11 @@ def main():
             help="Print Comet version",
             version="%(prog)s " + __version__
             )
+        parser.add_argument(
+            "--project-version",
+            action="store_true",
+            help="Print project version"
+        )
         parser.add_argument(
             "--debug",
             help="Debug mode.",
@@ -100,7 +105,6 @@ def main():
         )
         parser.add_argument(
             "--run",
-            required=True,
             choices=[
                 "init",
                 "branch-flow",
@@ -118,6 +122,15 @@ def main():
             comet_logger.info("Comet log level set to debug")
         else:
             comet_logger.setLevel(logging.INFO)
+        if args.project_version:
+            project_config = ConfigParser(config_path=args.project_config)
+            project_config.read_config()
+            print(f"Project Versions:")
+            for project in project_config.config["projects"]:
+                print(f"  Sub-project: {project['path']}\n"
+                      f"    Development Version: {project_config.get_project_version(project_path=project['path'], version_type='dev')}\n"
+                      f"    Stable Version: {project_config.get_project_version(project_path=project['path'], version_type='stable')}"
+                )
         if args.run == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
