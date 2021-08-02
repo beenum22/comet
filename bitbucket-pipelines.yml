@@ -47,7 +47,10 @@ definitions:
 
     - step: &upgrade-version
         name: Upgrade Version
-        image: dockerhub.ng-voice.com/comet:latest
+        image:
+          name: dockerhub.ng-voice.com/comet:latest
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
         script:
           - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
           - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
@@ -80,6 +83,7 @@ definitions:
               source shared_vars.sh
             fi
           - export IMAGE_NAME=dockerhub.ng-voice.com/comet
+#          - export IMAGE_TAG=$(grep 'dev_version:' .comet.yml | sed 's/^.*: //' | tr + _)
           - export IMAGE_TAG=latest
           - echo "${IMAGE_NAME}:${IMAGE_TAG}"
           - docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD dockerhub.ng-voice.com
