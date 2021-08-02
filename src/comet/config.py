@@ -114,7 +114,8 @@ class ConfigParser(object):
         logger.debug(
             f"Sanitizing project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
         for idx, project in enumerate(self.config["projects"]):
-            self.config["projects"][idx]["path"] = f"{os.path.join(os.path.dirname(self.config_path), project['path'])}"
+            if not project['path'] in [".", "./", ""]:
+                self.config["projects"][idx]["path"] = f"{os.path.join(os.path.dirname(self.config_path), project['path'])}"
         logger.debug(f"Sanitized project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
 
     def _validate_project_path(self, project_path: str) -> None:
