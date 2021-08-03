@@ -72,6 +72,7 @@ class ConventionalCommits(object):
     COMMIT_PARSER_REGEX: str = fr"^(?P<change_type>{'|'.join(list(COMMIT_TYPES.keys()))})" \
                                fr"(?P<breaking_sign>!)?(?:\((?P<scope>[^()\r\n]*)\)|\()?:\s(?P<summary>.*)" \
                                fr"\n?\n?(?P<body>[\s\S]*\n\n)?\n?(?P<footers>[\s\S]*)"
+    IGNORED_COMMIT_REGEX: str = r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)"
     SEMVER_BUMP_KEYWORDS: Dict[str, List[str]] = {
         SemVer.MAJOR: [
             "feat!",
@@ -90,7 +91,8 @@ class ConventionalCommits(object):
     @staticmethod
     def lint_commit(commit_msg: str) -> bool:
         lint_commit = re.search(ConventionalCommits.COMMIT_PARSER_REGEX, commit_msg)
-        if lint_commit:
+        ignored_commit = re.search(ConventionalCommits.IGNORED_COMMIT_REGEX, commit_msg)
+        if lint_commit or ignored_commit:
             return True
         return False
 
