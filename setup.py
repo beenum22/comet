@@ -30,7 +30,7 @@ pkgs, links = get_requirements()
 
 setup(
     name='comet',
-    version='0.2.0-dev.4',
+    version='0.2.0-dev.5',
     license='LICENSE',
     description='Comet is a simple tool to automate/facilitate automated release cycle.',
     long_description=readme(),

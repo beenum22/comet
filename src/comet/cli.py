@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = 'Muneeb Ahmad'
-__version__ = '0.2.0-dev.4'
+__version__ = '0.2.0-dev.5'
 
 import sys
 import os
