@@ -174,47 +174,61 @@ class GitFlow(object):
                 push=True
             )
 
-    def default_branch_flow(self):
+    def default_branch_flow(self) -> None:
         logger.info("Executing default branch GitFlow")
         self.prepare_versioning("dev")
         changed_projects = []
         for project in self.project_config.config["projects"]:
+            current_version = self.projects_semver_objects[project['path']].get_version()
+            logger.debug(
+                f"Current Version for sub-project [{project['path']}]: {current_version}"
+            )
             commits = self.scm.find_new_commits(
                 self.scm.source_branch,
                 self.scm.development_branch,
                 project["path"]
             )
+            commits = [
+                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+            ]
             if commits:
-                logger.debug(f"New commits found for project [{project['path']}"
-                             f"in reference to development branch [{self.scm.development_branch}]")
-                logger.debug(
-                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}"
-                )
-                self.projects_semver_objects[project["path"]].bump_version(
-                    release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.get_active_branch_hex()}")
-            # for commit in commits:
-            #     next_bump = ConventionalCommits.get_bump_type(commit.message)
-            #     logger.debug(
-            #         f"Current Version: {self.projects_semver_objects[project['path']].get_version()}"
-            #     )
-            #     if next_bump == SemVer.NO_CHANGE:
-            #         continue
-            #     self.projects_semver_objects[project["path"]].bump_version(
-            #         release=SemVer.BUILD, pre_release="dev", build_metadata=f"{self.scm.get_active_branch_hex()}")
-            if len(commits) > 0:
-                logger.debug(f"New Version: {self.projects_semver_objects[project['path']].get_version()}")
+                current_version_hex = None
+                commit_hexes = [commit.hexsha for commit in commits]
+                if self.projects_semver_objects[project['path']].version_object.build:
+                    current_version_hex = \
+                        self.projects_semver_objects[project['path']].version_object.build.split(".")[0]
+                if current_version_hex and len(commit_hexes) > 1 and current_version_hex in commit_hexes:
+                    new_version_hex = commit_hexes[-1]
+                else:
+                    new_version_hex = commit_hexes[0]
+                if new_version_hex:
+                    logger.debug(f"New commits found for project [{project['path']}] "
+                                 f"in reference to development branch [{self.scm.development_branch}]")
+                    self.projects_semver_objects[project["path"]].bump_version(
+                        release=SemVer.BUILD,
+                        pre_release="dev",
+                        build_metadata=f"{new_version_hex}",
+                        static_build_metadata=True
+                    )
+            if self.projects_semver_objects[project['path']].get_version() != current_version:
+                logger.debug(f"New Version for sub-project [{project['path']}]: "
+                             f"{self.projects_semver_objects[project['path']].get_version()}")
                 self.projects_semver_objects[project["path"]].update_version_files(
-                    self.projects_semver_objects[project["path"]].get_version()
+                    current_version
                 )
                 changed_projects.append(project['path'])
+            else:
+                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
         if len(changed_projects) > 0:
-            logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
             self.scm.commit_changes(
-                f"chore: update comet config and project version files for {', '.join(changed_projects)}\n\n[skip ci]",
+                ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
                 *changed_projects,
                 push=True
             )
+        else:
+            logger.info(f"No version upgrade/s found for sub-projects")
 
     def development_branch_flow(self):
         logger.info("Executing Development branch GitFlow")
@@ -250,10 +264,12 @@ class GitFlow(object):
             )
             changed_projects.append(project['path'])
         if len(changed_projects) > 0:
-            logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
             self.scm.commit_changes(
-                f"chore: update comet config and project version files for {', '.join(changed_projects)}\n\n[skip ci]",
+                ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
                 *changed_projects,
                 push=True
             )
+        else:
+            logger.info(f"No version upgrade/s found for sub-projects")

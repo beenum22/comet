@@ -193,7 +193,13 @@ class SemVer(object):
             raise
 
     # TODO: Allow changing pre_release type for versions with pre_release defined
-    def bump_version(self, release: int = PRE_RELEASE, pre_release: str = None, build_metadata: str = None):
+    def bump_version(
+            self,
+            release: int = PRE_RELEASE,
+            pre_release: str = None,
+            build_metadata: str = None,
+            static_build_metadata: bool = False
+    ):
         try:
             assert self._validate_release_type(release), "Release type validation failed!"
             if pre_release:
@@ -207,7 +213,10 @@ class SemVer(object):
             elif release == self.PRE_RELEASE:
                 self.version_object = self.version_object.bump_prerelease(pre_release)
             elif release == self.BUILD:
-                self.version_object = self.version_object.bump_build(build_metadata)
+                if static_build_metadata:
+                    self.version_object = self.version_object.replace(build=build_metadata)
+                else:
+                    self.version_object = self.version_object.bump_build(build_metadata)
             if pre_release and release in [self.MAJOR, self.MINOR, self.PATCH]:
                 self.version_object = self.version_object.bump_prerelease(pre_release)
         except AssertionError as err:

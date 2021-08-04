@@ -63,6 +63,8 @@ class ConventionalCommits(object):
         }
     }
 
+    DEFAULT_VERSION_COMMIT: str = "chore: auto update comet config and project version files\n\n[skip ci]"
+
     # Motivation from:
     # https://github.com/commitizen-tools/commitizen/blob/aa0debe9ae5939afb54de5f26c7f0c395894e330/commitizen/defaults.py#L45
     COMMIT_SEMVER_REGEX: str = r"^(?P<change_type>feat|fix|refactor|perf)" \
@@ -72,7 +74,11 @@ class ConventionalCommits(object):
     COMMIT_PARSER_REGEX: str = fr"^(?P<change_type>{'|'.join(list(COMMIT_TYPES.keys()))})" \
                                fr"(?P<breaking_sign>!)?(?:\((?P<scope>[^()\r\n]*)\)|\()?:\s(?P<summary>.*)" \
                                fr"\n?\n?(?P<body>[\s\S]*\n\n)?\n?(?P<footers>[\s\S]*)"
-    IGNORED_COMMIT_REGEX: str = r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)"
+    # IGNORED_COMMIT_REGEX: str = r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)"
+    IGNORED_COMMIT_REGEX: List[str] = [
+        r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)",
+        r"chore: auto update comet config and project version files"
+    ]
     SEMVER_BUMP_KEYWORDS: Dict[str, List[str]] = {
         SemVer.MAJOR: [
             "feat!",
@@ -90,10 +96,17 @@ class ConventionalCommits(object):
 
     @staticmethod
     def lint_commit(commit_msg: str) -> bool:
-        lint_commit = re.search(ConventionalCommits.COMMIT_PARSER_REGEX, commit_msg)
-        ignored_commit = re.search(ConventionalCommits.IGNORED_COMMIT_REGEX, commit_msg)
-        if lint_commit or ignored_commit:
+        if re.search(ConventionalCommits.COMMIT_PARSER_REGEX, commit_msg):
+            logger.debug(f"Commit message [{commit_msg}] follows the Conventional Commits Spec")
             return True
+        return False
+
+    @staticmethod
+    def ignored_commit(commit_msg: str) -> bool:
+        for pattern in ConventionalCommits.IGNORED_COMMIT_REGEX:
+            if re.search(pattern, commit_msg):
+                logger.debug(f"Commit message [{commit_msg}] should be ignored")
+                return True
         return False
 
     @staticmethod

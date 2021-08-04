@@ -267,7 +267,7 @@ class Scm(object):
             raise
 
     def find_new_commits(self, source_branch, reference_branch, path="."):
-        logger.info(
+        logger.debug(
             f"Looking for new commits on [{path}] project path on source branch "
             f"[{source_branch}] compared to reference branch [{reference_branch}]")
         commit_range = f"{reference_branch}...{source_branch}"
