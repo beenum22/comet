@@ -105,7 +105,7 @@ class ConventionalCommits(object):
     def ignored_commit(commit_msg: str) -> bool:
         for pattern in ConventionalCommits.IGNORED_COMMIT_REGEX:
             if re.search(pattern, commit_msg):
-                logger.debug(f"Commit message [{commit_msg}] should be ignored")
+                logger.debug(f"Commit message\n[\n{commit_msg}]\nshould be ignored")
                 return True
         return False
 

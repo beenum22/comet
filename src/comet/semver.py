@@ -162,6 +162,9 @@ class SemVer(object):
     def get_version(self):
         return str(self.version_object)
 
+    def get_final_version(self):
+        return str(self.version_object.finalize_version())
+
     # TODO: Add comet config initialization
     def prepare_version(self):
         try:
@@ -211,6 +214,8 @@ class SemVer(object):
             elif release == self.PATCH:
                 self.version_object = self.version_object.bump_patch()
             elif release == self.PRE_RELEASE:
+                if self.version_object.prerelease and pre_release != self.version_object.prerelease.split('.')[0]:
+                    self.version_object = self.version_object.finalize_version()
                 self.version_object = self.version_object.bump_prerelease(pre_release)
             elif release == self.BUILD:
                 if static_build_metadata:

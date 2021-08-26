@@ -83,8 +83,7 @@ definitions:
               source shared_vars.sh
             fi
           - export IMAGE_NAME=dockerhub.ng-voice.com/comet
-#          - export IMAGE_TAG=$(grep 'dev_version:' .comet.yml | sed 's/^.*: //' | tr + _)
-          - export IMAGE_TAG=latest
+          - 'export IMAGE_TAG=$(grep "dev_version:" .comet.yml | sed "s/^.*: //" | tr + _)'
           - echo "${IMAGE_NAME}:${IMAGE_TAG}"
           - docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD dockerhub.ng-voice.com
           - >-

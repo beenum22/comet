@@ -6,6 +6,7 @@ import os
 import socket
 from git import Repo
 from git.exc import InvalidGitRepositoryError, NoSuchPathError, GitError
+from .utilities import CometUtilities
 
 logger = logging.getLogger(__name__)
 logging.getLogger("paramiko").setLevel(logging.ERROR)
@@ -283,7 +284,7 @@ class Scm(object):
                 self.repo_object.git.add(paths)
                 self.repo_object.git.commit("-m", msg)
                 if push:
-                    self.push_changes()
+                    self.push_changes(branch=self.get_active_branch())
             else:
                 logger.warning(f"No commits found for project files {','.join(paths)}")
         except GitError as err:
@@ -317,18 +318,35 @@ class Scm(object):
     def add_tag(self, name):
         pass
 
-    def add_branch(self, branch):
+    def add_branch(self, branch: str, checkout: bool = False) -> None:
         try:
             logger.info(f"Creating a Git branch [{branch}]")
-            self.repo_object.create_head(branch)
+            new_branch = self.repo_object.create_head(branch)
+            if checkout:
+                new_branch.checkout()
         except GitError as err:
             logger.debug(err)
             raise
 
-    def push_changes(self):
+    @CometUtilities.unsupported_function_error
+    def merge_branches(self, source_branch: str, destination_branch: str, msg: str) -> None:
+        try:
+            logger.debug(f"Merging source branch [{source_branch}] into destination branch [{destination_branch}]")
+            self.repo_object.git.checkout(destination_branch)
+            self.repo_object.git.merge(source_branch)
+
+            merge_base = self.repo_object.merge_base(source_branch, destination_branch)
+            self.repo_object.index.merge_tree(destination_branch, base=merge_base)
+            self.repo_object.index.commit(f"chore: merge '{source_branch}' into '{destination_branch}')",
+                                          parent_commits=(new_branch.commit, master.commit))
+        except GitError as err:
+            logger.debug(err)
+            raise
+
+    def push_changes(self, branch: str = None):
         try:
             logger.info(f"Pushing local changes to remote [{self.get_remote_alias()}]")
-            self.repo_object.remote().push()
+            self.repo_object.remote().push(branch)
         except GitError as err:
             logger.debug(err)
             raise

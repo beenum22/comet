@@ -36,72 +36,39 @@ def main():
     coloredlogs.install(fmt="%(levelname)s - %(message)s", level='DEBUG')
     try:
         parser = argparse.ArgumentParser(
-            prog="comet",
-            description=banner())
-        parser.add_argument(
+            prog="comet")
+        logging_group = parser.add_mutually_exclusive_group()
+        version_group = parser.add_argument_group(title="Versioning", description="Version related operations")
+        flow_group = parser.add_argument_group(title="Workflow", description="Workflows related operations")
+        version_group.add_argument(
             "--version",
             action="version",
             help="Print Comet version",
             version="%(prog)s " + __version__
             )
-        parser.add_argument(
-            "--project-version",
-            action="store_true",
-            help="Print project version"
+        version_group.add_argument(
+            "--project-dev-version",
+            type=str,
+            nargs='+',
+            help="Print development project version"
         )
-        parser.add_argument(
+        version_group.add_argument(
+            "--project-stable-version",
+            type=str,
+            nargs='+',
+            help="Print stable project version"
+        )
+        logging_group.add_argument(
             "--debug",
-            help="Debug mode.",
+            help="Enable debug mode",
             action="store_true"
             )
-        parser.add_argument(
-            "-s",
-            "--scm-provider",
-            default="bitbucket",
-            help="Git SCM provider name"
-            )
-        parser.add_argument(
-            "-c",
-            "--connection-type",
-            default="ssh",
-            help="Git SCM provider remote connection type"
-            )
-        parser.add_argument(
-            "-u",
-            "--username",
-            default=None,
-            help="Git username"
-            )
-        parser.add_argument(
-            "-p",
-            "--password",
-            default=None,
-            help="Git password"
-            )
-        parser.add_argument(
-            "-spkp",
-            "--ssh-private-key-path",
-            default="~/.ssh/id_rsa",
-            help="Git SSH local private key path"
-            )
-        # NOTE: Support for running Comet from any directory is disabled for now
-        parser.add_argument(
-            "-rlp",
-            "--repo-local-path",
-            default="./",
-            choices=[
-              "./"
-            ],
-            help="Git Repository local path (Support for running Comet for "
-                 "any path other than './' is disabled for now)"
-            )
-        parser.add_argument(
-            "-pc",
-            "--project-config",
-            default="./.comet.yml",
-            help="Git Project configuration file path"
+        logging_group.add_argument(
+            "--suppress",
+            help="Suppress banner and logging",
+            action="store_true"
         )
-        parser.add_argument(
+        flow_group.add_argument(
             "--run",
             choices=[
                 "init",
@@ -112,23 +79,80 @@ def main():
             help="Comet action to execute.\n"
                  "[init: Initialize Comet repository configuration if it doesn't exist (Interactive mode), "
                  "branch-flow: Upgrade versioning on Git branches for Comet managed project/s,"
-                 "release-flow: Create Release branches for Comet managed project/s]"
+                 "release-candidate: Create Release candidate branch for Comet managed project/s]"
+                 "release: Release a new version in stable branch for Comet managed project/s]"
+        )
+        flow_group.add_argument(
+            "-s",
+            "--scm-provider",
+            default="bitbucket",
+            help="Git SCM provider name"
+            )
+        flow_group.add_argument(
+            "-c",
+            "--connection-type",
+            default="ssh",
+            help="Git SCM provider remote connection type"
+            )
+        flow_group.add_argument(
+            "-u",
+            "--username",
+            default=None,
+            help="Git username"
+            )
+        flow_group.add_argument(
+            "-p",
+            "--password",
+            default=None,
+            help="Git password"
+            )
+        flow_group.add_argument(
+            "-spkp",
+            "--ssh-private-key-path",
+            default="~/.ssh/id_rsa",
+            help="Git SSH local private key path"
+            )
+        # NOTE: Support for running Comet from any directory is disabled for now
+        flow_group.add_argument(
+            "-rlp",
+            "--repo-local-path",
+            default="./",
+            choices=[
+              "./"
+            ],
+            help="Git Repository local path (Support for running Comet for "
+                 "any path other than './' is disabled for now)"
+            )
+        flow_group.add_argument(
+            "-pc",
+            "--project-config",
+            default="./.comet.yml",
+            help="Git Project configuration file path"
+        )
+        flow_group.add_argument(
+            "--push",
+            help="Push changes to remote",
+            action="store_true"
         )
         args = parser.parse_args()
-        if args.debug:
+        if args.suppress:
+            logging.disable(level=logging.CRITICAL)
+        elif args.debug:
+            banner()
             comet_logger.setLevel(logging.DEBUG)
             comet_logger.info("Comet log level set to debug")
         else:
+            banner()
             comet_logger.setLevel(logging.INFO)
-        if args.project_version:
+        if args.project_dev_version or args.project_stable_version:
             project_config = ConfigParser(config_path=args.project_config)
             project_config.read_config()
-            print(f"Project Versions:")
-            for project in project_config.config["projects"]:
-                print(f"  Sub-project: {project['path']}\n"
-                      f"    Development Version: {project_config.get_project_version(project_path=project['path'], version_type='dev')}\n"
-                      f"    Stable Version: {project_config.get_project_version(project_path=project['path'], version_type='stable')}"
-                )
+            if args.project_dev_version:
+                for project in args.project_dev_version:
+                    print(f"{project} {project_config.get_project_version(project_path=os.path.join(os.path.dirname(args.project_config), project), version_type='dev')}")
+            if args.project_stable_version:
+                for project in args.project_stable_version:
+                    print(f"{project} {project_config.get_project_version(project_path=os.path.join(os.path.dirname(args.project_config), project), version_type='stable')}")
         if args.run == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
@@ -146,7 +170,8 @@ def main():
                 password=args.password,
                 ssh_private_key_path=args.ssh_private_key_path,
                 project_local_path=args.repo_local_path,
-                project_config_path=args.project_config
+                project_config_path=args.project_config,
+                push_changes=args.push
             )
         if args.run == "branch-flow":
             gitflow.branch_flows()
