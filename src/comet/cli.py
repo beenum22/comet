@@ -149,10 +149,14 @@ def main():
             project_config.read_config()
             if args.project_dev_version:
                 for project in args.project_dev_version:
-                    print(f"{project} {project_config.get_project_version(project_path=os.path.join(os.path.dirname(args.project_config), project), version_type='dev')}")
+                    if project not in [".", "./", ""]:
+                        project = os.path.join(os.path.dirname(args.project_config), project)
+                    print(f"{project} {project_config.get_project_version(project_path=project, version_type='dev')}")
             if args.project_stable_version:
                 for project in args.project_stable_version:
-                    print(f"{project} {project_config.get_project_version(project_path=os.path.join(os.path.dirname(args.project_config), project), version_type='stable')}")
+                    if project not in [".", "./", ""]:
+                        project = os.path.join(os.path.dirname(args.project_config), project)
+                    print(f"{project} {project_config.get_project_version(project_path=project, version_type='stable')}")
         if args.run == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
