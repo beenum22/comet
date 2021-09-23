@@ -39,18 +39,40 @@ options:
 definitions:
   steps:
 
+    - step: &shared-vars
+        name: Generate shared variables file
+        clone:
+          enabled: false
+        script:
+          -
+        artifacts:
+          - shared_vars.sh
+
     - step: &lint-last-message
         name: Lint Commit Message
         image: gtramontina/commitlint:8.3.5
         script:
           - commitlint --config .commitlint.js --from HEAD~1
 
-    - step: &upgrade-version
-        name: Upgrade Version
+    - step: &push-comet-upgrades
+        name: Push Comet Upgrades
+        clone:
+          depth: full
+        script:
+          - git log
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - git push origin
+
+    - step: &release-candidate
+        name: Generate Release Candidate
         image:
-          name: dockerhub.ng-voice.com/comet:latest
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
+        clone:
+          depth: full
         script:
           - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
           - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
@@ -58,13 +80,73 @@ definitions:
           - >-
             comet
             --debug
-            --project-version
+            --run release-candidate
+            --username ${BITBUCKET_USERNAME}
+            --password ${BITBUCKET_APP_PASSWORD}
+            --connection-type https
+            --push
+
+    - step: &release
+        name: Release version
+        image:
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        clone:
+          depth: full
+        script:
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - >-
+            comet
+            --debug
+            --run release
+            --username ${BITBUCKET_USERNAME}
+            --password ${BITBUCKET_APP_PASSWORD}
+            --connection-type https
+            --push
+
+    - step: &upgrade-version
+        name: Upgrade Version
+        image:
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        clone:
+          depth: full
+        script:
+          - >-
+            if [ -f "shared_vars.sh" ]; then
+              source shared_vars.sh
+              rm shared_vars.sh
+            fi
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - >-
+            comet
+            --debug
             --run branch-flow
             --username ${BITBUCKET_USERNAME}
             --password ${BITBUCKET_APP_PASSWORD}
             --connection-type https
-        artifacts:
-          - ".comet.yml"
+            ${PUSH:+--push}
+
+    - step: &execute-comet-unit-tests
+        name: Run Unit tests
+        image: python:3.7.2
+        condition:
+          changesets:
+            includePaths:
+              - "src/comet/**"
+              - "tests/**"
+              - Dockerfile
+              - setup.py
+              - pyproject.toml
+        script:
+          - pip install -e .
+          - python -m unittest discover -s tests/
 
     - step: &build-and-push-comet
         name: Build & Push Comet
@@ -72,6 +154,7 @@ definitions:
           changesets:
             includePaths:
               - "src/comet/**"
+              - "tests/**"
               - Dockerfile
               - setup.py
               - pyproject.toml
@@ -97,13 +180,58 @@ definitions:
             fi
 
 pipelines:
+  custom:
+    release:
+      - step: *release
+
+    release-candidate:
+      - step: *release-candidate
+
   default:
     - step: *lint-last-message
-    - step: *upgrade-version
+    - step:
+        <<: *upgrade-version
+        name: Generate Comet Config
+        artifacts:
+          - "**"
+          - ".**"
+    - step: *execute-comet-unit-tests
     - step: *build-and-push-comet
+    - step: *push-comet-upgrades
 
   branches:
     develop:
       - step: *lint-last-message
-      - step: *upgrade-version
+      - step:
+          <<: *upgrade-version
+          name: Generate Comet Config
+          artifacts:
+            - "**"
+            - ".**"
+      - step: *execute-comet-unit-tests
       - step: *build-and-push-comet
+      - step: *push-comet-upgrades
+
+    master:
+      - step: *lint-last-message
+      - step:
+          <<: *upgrade-version
+          name: Generate Comet Config
+          artifacts:
+            - "**"
+            - ".**"
+      - step: *execute-comet-unit-tests
+      - step: *build-and-push-comet
+      - step: *push-comet-upgrades
+
+    release/**:
+      - step: *lint-last-message
+      - step:
+          <<: *upgrade-version
+          name: Generate Comet Config
+          artifacts:
+            - "**"
+            - ".**"
+      - step: *execute-comet-unit-tests
+      - step: *build-and-push-comet
+      - step: *push-comet-upgrades

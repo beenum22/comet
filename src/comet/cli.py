@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-__author__ = 'Muneeb Ahmad'
-__version__ = '0.2.0-dev.9'
 
 import sys
 import os
@@ -11,6 +9,15 @@ from .config import ConfigParser
 import logging.config
 from colorama import Fore, Style
 import coloredlogs
+
+from .work_flows import GitFlow
+from .config import ConfigParser
+
+__author__ = 'Muneeb Ahmad'
+__version__ = '0.2.0-dev.7+23f845ad9c7737a91888c90f51751431c438460a'
+__license__ = "MIT"
+__maintainer__ = "Muneeb Ahmad"
+__email__ = "muneeb@ng-voice.com"
 
 
 def banner():
@@ -25,12 +32,49 @@ def banner():
 {Fore.LIGHTWHITE_EX}
 Comet is a simple tool to automate/facilitate release cycle.
 Happy Versioning!
-
-Copyright 2021 Muneeb Ahmad
 {Style.RESET_ALL}""")
 
 
-def main():
+def main() -> None:
+    """
+    Main Comet function that is executed to perform all the Comet utility operations.
+
+    Currently, Comet supports only Gitflow-based development cycle and provides the
+    `run` flag parameter to execute the supported flows/operations. Supported flows
+    are:
+
+      1. Comet configuration initialization (init)
+      2. Branch specific versioning handling (branch-flow)
+      3. Release candidate branch creation (release-candidate)
+      4. Releasing directly to the stable branch (release)
+
+    Main workflows requires the following variables as pre-requisites:
+
+      1. Git SCM provider name (Default and only supported one: bitbucket)
+      2. Git connection type to connect with SCM provider (Default: https)
+      3. Git username to access upstream repo hosted by SCM provider (Required if HTTPS Git connection type)
+      4. Git password to access upstream repo hosted by SCM provider (Required if HTTPS Git connection type)
+      5. SSH key-pair with access to upstream repo hosted by SCM provider (Default: ~/.ssh/id_rsa) (Required if SSH Git connection type)
+      6. Comet configuration file name (Default: .comet.yml)
+      7. Local Git repository path (Default and only supported: ./)
+
+    Apart from the workflows, Comet utility can be used to check the current dev and stable versions for the target
+    project(s). Example:
+
+    .. code-block:: bash
+
+        $ comet --project-dev-version pcscf icscf
+
+        $ comet --project-stable-version icscf
+
+    For further details, execute the following command from the CLI to print the `help` section for Comet:
+
+    .. code-block:: bash
+
+        $ comet --help
+
+    :return: None
+    """
     comet_logger = logging.getLogger()
     # coloredlogs.install(fmt="%(asctime)s %(name)s - %(levelname)s - %(message)s", level='DEBUG')
     coloredlogs.install(fmt="%(levelname)s - %(message)s", level='DEBUG')
@@ -77,7 +121,7 @@ def main():
                 "release"
             ],
             help="Comet action to execute.\n"
-                 "[init: Initialize Comet repository configuration if it doesn't exist (Interactive mode), "
+                 "[init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
                  "branch-flow: Upgrade versioning on Git branches for Comet managed project/s,"
                  "release-candidate: Create Release candidate branch for Comet managed project/s]"
                  "release: Release a new version in stable branch for Comet managed project/s]"
@@ -192,8 +236,5 @@ def main():
         sys.exit(1)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -7,6 +7,50 @@ logger = logging.getLogger(__name__)
 
 
 class ConventionalCommits(object):
+    """
+    Backend that provides required utilities and specifies standards to facilitate implement Conventional Commits
+    Specification for commit messages. All the development related to Conventional Commits specification should go
+    here.
+
+    This ConventionalCommits class includes the following features:
+        * Regex expression patterns to parse commit messages
+        * Default commit messages for automated releases and version bumps
+        * Mappings for types of commits and version bump specifiers
+        * Commit linting
+        * Version bump finder based on commit message
+
+    .. important::
+        This class only exposes static type methods
+
+        Dependencies:
+            * SemVer class
+
+
+    Conventional Commits Spec Reference:
+    Reference: https://www.conventionalcommits.org/en/v1.0.0/
+
+    Regular Expression patterns are inspired by Commitizen versioning tool.
+    Reference:
+    https://github.com/commitizen-tools/commitizen/blob/aa0debe9ae5939afb54de5f26c7f0c395894e330/commitizen/defaults.py#L45
+
+    Example:
+
+    .. code-block:: python
+
+        ConventionalCommits.lint_commit("feat(test): test commit message")
+        ConventionalCommits.ignored_commit("feat(test): test commit message")
+        ConventionalCommits.get_bump_type("feat(test): test commit message")
+
+    :cvar COMMIT_TYPES: Commit types mapping according to Conventional Commits Spec with descriptions
+    :cvar DEFAULT_VERSION_COMMIT: Default commit message for version upgrades
+    :cvar DEFAULT_RELEASE_COMMIT: Default commit message for new releases
+    :cvar COMMIT_SEMVER_REGEX:
+        Regex pattern to parse commit message for version upgrades according to Semantic Versioning Spec
+    :cvar COMMIT_PARSER_REGEX: Regex pattern to parse commit message in general
+    :cvar IGNORED_COMMIT_REGEX: Regex pattern to find out ignored commit message
+    :cvar SEMVER_BUMP_KEYWORDS:
+        Keywords to identify different types of version upgrades according to Semantic Versioning Spec
+    """
 
     COMMIT_TYPES: Dict[str, Dict[str, str]] = {
         "ci": {
@@ -74,9 +118,8 @@ class ConventionalCommits(object):
     COMMIT_PARSER_REGEX: str = fr"^(?P<change_type>{'|'.join(list(COMMIT_TYPES.keys()))})" \
                                fr"(?P<breaking_sign>!)?(?:\((?P<scope>[^()\r\n]*)\)|\()?:\s(?P<summary>.*)" \
                                fr"\n?\n?(?P<body>[\s\S]*\n\n)?\n?(?P<footers>[\s\S]*)"
-    # IGNORED_COMMIT_REGEX: str = r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)"
     IGNORED_COMMIT_REGEX: List[str] = [
-        r"^((Merge pull request)|(Merge (.*?) into (.*?)|(Merge branch (.*?)))(?:\r?\n)*$)",
+        r"^Merge(.*?)",
         r"chore: auto update comet config and project version files"
     ]
     SEMVER_BUMP_KEYWORDS: Dict[str, List[str]] = {
@@ -96,6 +139,12 @@ class ConventionalCommits(object):
 
     @staticmethod
     def lint_commit(commit_msg: str) -> bool:
+        """
+        Lints the provided Git commit message string according to the Conventional Commits Spec.
+
+        :param commit_msg: Git commit message to lint
+        :return: Returns `True` if the linting is successful and `False` otherwise
+        """
         if re.search(ConventionalCommits.COMMIT_PARSER_REGEX, commit_msg):
             logger.debug(f"Commit message [{commit_msg}] follows the Conventional Commits Spec")
             return True
@@ -103,6 +152,13 @@ class ConventionalCommits(object):
 
     @staticmethod
     def ignored_commit(commit_msg: str) -> bool:
+        """
+        Checks if the provided Git commit message string should be ignored.
+        Usually Merge commit messages are supposed to be ignored.
+
+        :param commit_msg: Git commit message to check
+        :return: Returns `True` if the commit message should be ignored and `False` otherwise
+        """
         for pattern in ConventionalCommits.IGNORED_COMMIT_REGEX:
             if re.search(pattern, commit_msg):
                 logger.debug(f"Commit message\n[\n{commit_msg}]\nshould be ignored")
@@ -111,6 +167,15 @@ class ConventionalCommits(object):
 
     @staticmethod
     def get_bump_type(commit_msg: str) -> str:
+        """
+        Finds the type of version upgrade (according to Semantic Versioning Spec) to be performed based on the commit
+        message.
+
+        :param commit_msg: Git commit message to check
+        :return: Type of version upgrade/bump according Semantic Versioning Spec implemented in SemVer class
+        raises AssertionError:
+            raises an exception if commit linting fails for the specified message
+        """
         try:
             bump = SemVer.NO_CHANGE
             assert ConventionalCommits.lint_commit(
@@ -128,6 +193,6 @@ class ConventionalCommits(object):
                         bump = bump_type
                         return bump
             return bump
-        except AssertionError as err:
+        except AssertionError:
             logger.debug(f"Conventional Commits parsing failed for commit message: [{commit_msg}]")
             raise
