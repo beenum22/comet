@@ -257,10 +257,11 @@ class GitFlow(object):
         :param release_branch: Git branch to release to the stable branch.
         :return: None
         """
-        assert self.scm.source_branch in [
+        allowed_branches = [
             self.project_config.config["development_branch"],
             self.project_config.config["release_branch_prefix"]
-        ], \
+        ]
+        assert len([match for match in allowed_branches if (match in self.scm.source_branch)]) > 0, \
             f"Only development branch and release candidate branches are allowed to be released!"
 
         self.prepare_versioning("dev")
@@ -336,6 +337,12 @@ class GitFlow(object):
                 current_version,
                 new_version
             )
+            self.project_config.update_project_version(
+                project["path"],
+                new_version,
+                version_type="dev"
+            )
+
             changed_projects.append(project['path'])
 
         if len(changed_projects) > 0:
