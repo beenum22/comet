@@ -7,7 +7,7 @@ release_branch_prefix: release
 projects:
 - path: .
   stable_version: 0.1.0
-  dev_version: 0.2.0-dev.9
+  dev_version: 0.2.0-dev.10
   version_regex: ''
   version_files:
   - setup.py
