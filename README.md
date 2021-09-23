@@ -9,15 +9,13 @@ for branches and new releases. Detailed overview of the work flows is given belo
 ### Release Flow
 
 ### Branch Flow
-Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git branches
-according to the type of a branch.
+Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git branches according to the type of a branch.
 
-1. Stable branch
+   1. Stable branch
    Underdevelopment
 
-2. Development branch
-   Development branch flow is executed for a branch specified in `development_branch` parameter in the Comet
-configuration file. It uses stable branch version as a reference. If new commits are found on the development branch in comparison to the stable branch, it will bump the development version according to the types of commits found.
+   2. Development branch
+   Development branch flow is executed for a branch specified in `development_branch` parameter in the Comet configuration file. It uses stable branch version as a reference. If new commits are found on the development branch in comparison to the stable branch, it will bump the development version according to the types of commits found.
 
    Versions on the development branch have an appended pre-release identifier `dev`.
 
@@ -35,7 +33,8 @@ configuration file. It uses stable branch version as a reference. If new commits
    One major change is merged to the development branch.
    New Dev version = 2.0.0-dev.1
    ```
-3. Release branch
+   
+   3. Release branch
    Release branch flow is executed for branches with a prefix as specified in `release_branch_prefix` parameter
    in the Comet configuration file. It uses development version as a reference. If new commits are found on the
    release branch in comparison to the development branch, it will look for keywords/identifiers specified for
@@ -51,7 +50,8 @@ configuration file. It uses stable branch version as a reference. If new commits
    One patch change is merged to the release branch.
    New release version = 1.0.0-rc.2
    ```
-4. Default branch (Feature/Bugfix/Misc)
+
+   4. Default branch (Feature/Bugfix/Misc)
    Default branch flow is executed for any branch that doesn't have a dedicated flow. If new commits are found
    in comparison to the development branch, it will upgrade the version by appending a 40 Bytes Hex version for
    latest SHA-1 commit hash as metadata. After the upgrade, it will commit the changes with an optional
@@ -89,6 +89,7 @@ Execute the following `help` command to list down all the available options:
 ```bash
 comet --help
 ```
+
 ```console
 usage: comet [-h] [--version]
              [--project-dev-version PROJECT_DEV_VERSION [PROJECT_DEV_VERSION ...]]
