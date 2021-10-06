@@ -449,7 +449,10 @@ class Scm(object):
                 self.repo_object.git.add(paths)
                 self.repo_object.git.commit("-m", msg)
                 if push:
-                    self.push_changes(branch=self.get_active_branch())
+                    self.push_changes(
+                        branch=self.get_active_branch(),
+                        tags=False
+                    )
             else:
                 logger.warning(f"No commits found for project files {','.join(paths)}")
         except GitError as err:
@@ -567,24 +570,25 @@ class Scm(object):
             # self.repo_object.index.merge_tree(destination_branch, base=merge_base)
             # self.repo_object.index.commit(f"chore: merge '{source_branch}' into '{destination_branch}')",
             #                               parent_commits=(source_branch.commit, destination_branch.commit))
-            self.repo_object.git.checkout(source_branch)
+            self.repo_object.git.checkout(self.source_branch)
         except GitError as err:
             logger.debug(err)
             raise
 
     # TODO: Add support for pushing tags
-    def push_changes(self, branch: str = None) -> None:
+    def push_changes(self, branch: str = None, tags: str = False) -> None:
         """
         Push local Git changes to the remote/upstream Git repository from an optional specific source Git branch.
 
         :param branch: Source Git branch name
+        :param tags: Flag to push local Git tags
         :return: None
         :raises GitError:
             raises an exception if it fails to push changes to the remote/upstream Git repository
         """
         try:
             logger.info(f"Pushing local changes to remote [{self.get_remote_alias()}]")
-            self.repo_object.remote().push(branch)
+            self.repo_object.remote().push(branch, tags=tags)
         except GitError as err:
             logger.debug(err)
             raise

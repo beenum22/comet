@@ -301,6 +301,21 @@ class GitFlow(object):
                 *changed_projects,
                 push=self.push_changes
             )
+            self.scm.merge_branches(
+                source_branch=self.scm.development_branch,
+                destination_branch=self.scm.stable_branch
+            )
+
+        for project in changed_projects:
+            release_version = self.projects_semver_objects[project].get_final_version()
+            project_name = os.path.basename(project).strip('.')
+            self.scm.add_tag(f"{project_name}{'-' if project_name else ''}{release_version}")
+
+        if self.push_changes:
+            self.scm.push_changes(
+                branch=self.scm.stable_branch,
+                tags=True
+            )
 
     @CometUtilities.unstable_function_warning
     def release_candidate(self) -> None:
@@ -379,7 +394,10 @@ class GitFlow(object):
             destination_branch=self.scm.development_branch
         )
         if self.push_changes:
-            self.scm.push_changes(self.scm.development_branch)
+            self.scm.push_changes(
+                branch=self.scm.development_branch,
+                tags=False
+            )
 
     def branch_flows(self) -> None:
         """
@@ -421,6 +439,9 @@ class GitFlow(object):
                 self.scm.development_branch,
                 project["path"]
             )
+            commits = [
+                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+            ]
             for commit in commits:
                 next_bump = ConventionalCommits.get_bump_type(commit.message)
                 logger.debug(
@@ -459,6 +480,15 @@ class GitFlow(object):
                 self.project_config_path,
                 *changed_projects,
                 push=self.push_changes
+            )
+        for project in changed_projects:
+            release_version = self.projects_semver_objects[project].get_final_version()
+            project_name = os.path.basename(project).strip('.')
+            self.scm.add_tag(f"{project_name}{'-' if project_name else ''}{release_version}")
+        if self.push_changes:
+            self.scm.push_changes(
+                branch=self.scm.stable_branch,
+                tags=True
             )
 
     def default_branch_flow(self) -> None:
@@ -553,6 +583,9 @@ class GitFlow(object):
                 self.scm.development_branch,
                 project["path"]
             )
+            commits = [
+                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+            ]
             for commit in commits:
                 next_bump = ConventionalCommits.get_bump_type(commit.message)
                 logger.debug(
@@ -617,6 +650,9 @@ class GitFlow(object):
                 self.scm.stable_branch,
                 project["path"]
             )
+            commits = [
+                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+            ]
             for commit in commits:
                 next_bump = ConventionalCommits.get_bump_type(commit.message)
                 logger.debug(
