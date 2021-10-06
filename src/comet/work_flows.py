@@ -299,14 +299,8 @@ class GitFlow(object):
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
                 *changed_projects,
-                push=False
+                push=self.push_changes
             )
-            self.scm.merge_branches(
-                source_branch=release_branch,
-                destination_branch=self.scm.stable_branch
-            )
-            if self.push_changes:
-                self.scm.push_changes()
 
     @CometUtilities.unstable_function_warning
     def release_candidate(self) -> None:
@@ -372,6 +366,21 @@ class GitFlow(object):
         else:
             self.release_to_stable(self.scm.source_branch)
 
+    def sync_flow(self) -> None:
+        """
+        Syncs the stable branch with the development branch.
+
+        :return: None
+        """
+        logger.info(f"Syncing stable branch [{self.scm.stable_branch}] with the development branch "
+                    f"[{self.scm.development_branch}]")
+        self.scm.merge_branches(
+            source_branch=self.scm.stable_branch,
+            destination_branch=self.scm.development_branch
+        )
+        if self.push_changes:
+            self.scm.push_changes(self.scm.development_branch)
+
     def branch_flows(self) -> None:
         """
         Executes the branch flow according to the source or active branch on the local Git repository.
@@ -398,48 +407,51 @@ class GitFlow(object):
         :return: None
         """
         logger.info("Executing Stable branch GitFlow")
+        logger.warning(
+            f"Stable branch GitFlow bumps version on every execution if new commits are found in comparison to "
+            f"the Development branch regardless of if they are already catered for in the version bump. Please "
+            f"make sure to merge all the version bumps on a Stable branch into the Development branch after the "
+            f"execution."
+        )
         self.prepare_versioning("stable")
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            past_bump = SemVer.NO_CHANGE
-            current_bump = SemVer.NO_CHANGE
             commits = self.scm.find_new_commits(
-                self.scm.development_branch,
                 self.scm.stable_branch,
+                self.scm.development_branch,
                 project["path"]
             )
             for commit in commits:
                 next_bump = ConventionalCommits.get_bump_type(commit.message)
                 logger.debug(
                     f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
-                    f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
-                    f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
                     f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
                 )
                 if next_bump == SemVer.NO_CHANGE:
                     continue
-                current_bump = self.projects_semver_objects[project["path"]].compare_bumps(past_bump, next_bump)
                 self.projects_semver_objects[project["path"]].bump_version(
-                    release=current_bump, pre_release=None)
-                if current_bump == SemVer.PRE_RELEASE and past_bump > next_bump:
-                    continue
-                else:
-                    past_bump = next_bump
+                    release=next_bump, pre_release=None)
             current_version = self.project_config.get_project_version(
                 project["path"],
                 version_type="stable"
             )
             new_version = self.projects_semver_objects[project['path']].get_version()
-            self.projects_semver_objects[project["path"]].update_version_files(
-                current_version,
-                new_version
-            )
-            self.project_config.update_project_version(
-                project["path"],
-                new_version,
-                version_type="stable"
-            )
-            changed_projects.append(project['path'])
+            if current_version != new_version:
+                self.projects_semver_objects[project["path"]].update_version_files(
+                    current_version,
+                    new_version
+                )
+                self.project_config.update_project_version(
+                    project["path"],
+                    new_version,
+                    version_type="stable"
+                )
+                self.project_config.update_project_version(
+                    project["path"],
+                    new_version,
+                    version_type="dev"
+                )
+                changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
             self.scm.commit_changes(
@@ -555,16 +567,19 @@ class GitFlow(object):
                 version_type="dev"
             )
             new_version = self.projects_semver_objects[project['path']].get_version()
-            self.projects_semver_objects[project["path"]].update_version_files(
-                current_version,
-                new_version
-            )
-            self.project_config.update_project_version(
-                project["path"],
-                new_version,
-                version_type="dev"
-            )
-            changed_projects.append(project['path'])
+            if current_version != new_version:
+                self.projects_semver_objects[project["path"]].update_version_files(
+                    current_version,
+                    new_version
+                )
+                self.project_config.update_project_version(
+                    project["path"],
+                    new_version,
+                    version_type="dev"
+                )
+                changed_projects.append(project['path'])
+            else:
+                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
             self.scm.commit_changes(
@@ -593,6 +608,10 @@ class GitFlow(object):
         for project in self.project_config.config["projects"]:
             past_bump = SemVer.NO_CHANGE
             current_bump = SemVer.NO_CHANGE
+            current_version = self.project_config.get_project_version(
+                project["path"],
+                version_type="dev"
+            )
             commits = self.scm.find_new_commits(
                 self.scm.development_branch,
                 self.scm.stable_branch,
@@ -615,21 +634,20 @@ class GitFlow(object):
                     continue
                 else:
                     past_bump = next_bump
-            current_version = self.project_config.get_project_version(
-                project["path"],
-                version_type="dev"
-            )
             new_version = self.projects_semver_objects[project['path']].get_version()
-            self.projects_semver_objects[project["path"]].update_version_files(
-                current_version,
-                new_version
-            )
-            self.project_config.update_project_version(
-                project["path"],
-                new_version,
-                version_type="dev"
-            )
-            changed_projects.append(project['path'])
+            if current_version != new_version:
+                self.projects_semver_objects[project["path"]].update_version_files(
+                    current_version,
+                    new_version
+                )
+                self.project_config.update_project_version(
+                    project["path"],
+                    new_version,
+                    version_type="dev"
+                )
+                changed_projects.append(project['path'])
+            else:
+                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
             self.scm.commit_changes(

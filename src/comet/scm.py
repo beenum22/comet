@@ -366,7 +366,8 @@ class Scm(object):
                 )
             return self.repo_url
         except AssertionError as err:
-            logger.error("Failed to find an active/available server for the requested SCM provider [%s]", self.scm_provider)
+            logger.error("Failed to find an active/available server for the requested SCM provider [%s]",
+                         self.scm_provider)
             logger.debug(err)
             raise
 
@@ -394,17 +395,17 @@ class Scm(object):
             assert self._validate_branches(), "Git Branches validation failed!"
         except GitError as err:
             logger.error("Failed to clone the Git repository [%s/%s] from remote SCM provider [%s] server",
-                            self.workspace,
-                            self.repo,
-                            self.scm_provider
-                            )
+                         self.workspace,
+                         self.repo,
+                         self.scm_provider
+                         )
             raise
         except AssertionError as err:
             logger.error("Failed to prepare the Git repository [%s/%s] from remote SCM provider [%s] server",
-                            self.workspace,
-                            self.repo,
-                            self.scm_provider
-                            )
+                         self.workspace,
+                         self.repo,
+                         self.scm_provider
+                         )
             raise
 
     def find_new_commits(self, source_branch: str, reference_branch: str, path: str = ".") -> list:
@@ -505,15 +506,24 @@ class Scm(object):
             logger.debug(err)
             raise
 
-    @CometUtilities.unsupported_function_error
-    def add_tag(self, name: str) -> None:
+    @CometUtilities.unstable_function_warning
+    def add_tag(self, name: str, strict: bool = False) -> None:
         """
         Adds a Git tag in the local Git repository.
 
         :param name: Git tag name
+        :param strict: Fails if the tag already exists
         :return: None
         """
-        pass
+        try:
+            if strict:
+                assert name not in self.repo_object.tags, f"Git tag [{name}] already exists in the repository!"
+            if name not in self.repo_object.tags:
+                logger.info(f"Add Git tag [{name}] to the repository")
+                self.repo_object.create_tag(name)
+        except (AssertionError, GitError) as err:
+            logger.debug(err)
+            raise
 
     def add_branch(self, branch: str, checkout: bool = False) -> None:
         """
@@ -562,6 +572,7 @@ class Scm(object):
             logger.debug(err)
             raise
 
+    # TODO: Add support for pushing tags
     def push_changes(self, branch: str = None) -> None:
         """
         Push local Git changes to the remote/upstream Git repository from an optional specific source Git branch.

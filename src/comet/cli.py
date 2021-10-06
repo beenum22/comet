@@ -47,6 +47,7 @@ def main() -> None:
       2. Branch specific versioning handling (branch-flow)
       3. Release candidate branch creation (release-candidate)
       4. Releasing directly to the stable branch (release)
+      5. Sync development branch with stable branch (sync)
 
     Main workflows requires the following variables as pre-requisites:
 
@@ -118,13 +119,15 @@ def main() -> None:
                 "init",
                 "branch-flow",
                 "release-candidate",
-                "release"
+                "release",
+                "sync"
             ],
             help="Comet action to execute.\n"
                  "[init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
-                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s,"
-                 "release-candidate: Create Release candidate branch for Comet managed project/s]"
-                 "release: Release a new version in stable branch for Comet managed project/s]"
+                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
+                 "release-candidate: Create Release candidate branch for Comet managed project/s], "
+                 "release: Release a new version in stable branch for Comet managed project/s], "
+                 "sync: Synchronizes the development branch with stable branch"
         )
         flow_group.add_argument(
             "-s",
@@ -195,12 +198,12 @@ def main() -> None:
                 for project in args.project_dev_version:
                     if project not in [".", "./", ""]:
                         project = os.path.join(os.path.dirname(args.project_config), project)
-                    print(f"{project} {project_config.get_project_version(project_path=project, version_type='dev')}")
+                    print(f"{project.lstrip('/.')} {project_config.get_project_version(project_path=project, version_type='dev')}")
             if args.project_stable_version:
                 for project in args.project_stable_version:
                     if project not in [".", "./", ""]:
                         project = os.path.join(os.path.dirname(args.project_config), project)
-                    print(f"{project} {project_config.get_project_version(project_path=project, version_type='stable')}")
+                    print(f"{project.lstrip('/.')} {project_config.get_project_version(project_path=project, version_type='stable')}")
         if args.run == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
@@ -210,7 +213,7 @@ def main() -> None:
                 logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
                 project_config.initialize_config()
                 project_config.write_config()
-        elif args.run in ["branch-flow", "release-candidate", "release"]:
+        elif args.run in ["sync", "branch-flow", "release-candidate", "release"]:
             gitflow = GitFlow(
                 scm_provider=args.scm_provider,
                 connection_type=args.connection_type,
@@ -227,6 +230,8 @@ def main() -> None:
             gitflow.release_flow(branches=True)
         elif args.run == "release":
             gitflow.release_flow(branches=False)
+        elif args.run == "sync":
+            gitflow.sync_flow()
     except Exception as err:
         comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)

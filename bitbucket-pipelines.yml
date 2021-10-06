@@ -25,11 +25,6 @@
 # - DOCKER_HUB_PASSWORD
 #     Description:
 #       Sets ng-voice Docker registry password.
-# - DOCKER_REGISTRY
-#     Description:
-#       Sets ng-voice Docker registry.
-#       e.g. dockerhub.ng-voice.com
-#       Note: DO NOT include protocol URL e.g. 'https://'
 # -----
 image: atlassian/default-image:2
 
@@ -68,7 +63,7 @@ definitions:
     - step: &release-candidate
         name: Generate Release Candidate
         image:
-          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.11
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
         clone:
@@ -89,7 +84,7 @@ definitions:
     - step: &release
         name: Release version
         image:
-          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.11
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
         clone:
@@ -110,7 +105,7 @@ definitions:
     - step: &upgrade-version
         name: Upgrade Version
         image:
-          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.11
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
         clone:

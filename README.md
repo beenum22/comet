@@ -12,7 +12,7 @@ for branches and new releases. Detailed overview of the work flows is given belo
 Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git branches according to the type of a branch.
 
    1. Stable branch
-   Underdevelopment
+   Stable branch flow is executed for a branch specified in `stable_branch` parameter in the Comet configuration file.
 
    2. Development branch
    Development branch flow is executed for a branch specified in `development_branch` parameter in the Comet configuration file. It uses stable branch version as a reference. If new commits are found on the development branch in comparison to the stable branch, it will bump the development version according to the types of commits found.
@@ -70,9 +70,7 @@ Comet can be installed from the source repository using [pip](https://pip.pypa.i
 
 Execute the following commands to install and use Comet from source repository:
 ```bash
-git clone https://bitbucket.org/ngvoice/comet
-cd comet
-pip install --user --no-use-pep517 -e .
+pip install git+https://bitbucket.org/ngvoice/comet.git@develop
 comet --version
 ```
 
@@ -91,14 +89,7 @@ comet --help
 ```
 
 ```console
-usage: comet [-h] [--version]
-             [--project-dev-version PROJECT_DEV_VERSION [PROJECT_DEV_VERSION ...]]
-             [--project-stable-version PROJECT_STABLE_VERSION [PROJECT_STABLE_VERSION ...]]
-             [--debug | --suppress]
-             [--run {init,branch-flow,release-candidate,release}]
-             [-s SCM_PROVIDER] [-c CONNECTION_TYPE] [-u USERNAME]
-             [-p PASSWORD] [-spkp SSH_PRIVATE_KEY_PATH] [-rlp {./}]
-             [-pc PROJECT_CONFIG] [--push]
+usage: comet [-h] [--version] [--project-dev-version PROJECT_DEV_VERSION [PROJECT_DEV_VERSION ...]] [--project-stable-version PROJECT_STABLE_VERSION [PROJECT_STABLE_VERSION ...]] [--debug | --suppress] [--run {init,branch-flow,release-candidate,release,sync}] [-s SCM_PROVIDER] [-c CONNECTION_TYPE] [-u USERNAME] [-p PASSWORD] [-spkp SSH_PRIVATE_KEY_PATH] [-rlp {./}] [-pc PROJECT_CONFIG] [--push]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -117,14 +108,8 @@ Versioning:
 Workflow:
   Workflows related operations
 
-  --run {init,branch-flow,release-candidate,release}
-                        Comet action to execute. [init: Initialize Comet
-                        repository configuration if it doesn't exist
-                        (Interactive mode), branch-flow: Upgrade versioning on
-                        Git branches for Comet managed project/s,release-
-                        candidate: Create Release candidate branch for Comet
-                        managed project/s]release: Release a new version in
-                        stable branch for Comet managed project/s]
+  --run {init,branch-flow,release-candidate,release,sync}
+                        Comet action to execute. [init: Initialize Comet repository configuration if it does not exist (Interactive mode), branch-flow: Upgrade versioning on Git branches for Comet managed project/s, release-candidate: Create Release candidate branch for Comet managed project/s], release: Release a new version in stable branch for Comet managed project/s], sync: Synchronizes the development branch with stable branch
   -s SCM_PROVIDER, --scm-provider SCM_PROVIDER
                         Git SCM provider name
   -c CONNECTION_TYPE, --connection-type CONNECTION_TYPE
@@ -136,8 +121,7 @@ Workflow:
   -spkp SSH_PRIVATE_KEY_PATH, --ssh-private-key-path SSH_PRIVATE_KEY_PATH
                         Git SSH local private key path
   -rlp {./}, --repo-local-path {./}
-                        Git Repository local path (Support for running Comet
-                        for any path other than './' is disabled for now)
+                        Git Repository local path (Support for running Comet for any path other than './' is disabled for now)
   -pc PROJECT_CONFIG, --project-config PROJECT_CONFIG
                         Git Project configuration file path
   --push                Push changes to remote
@@ -220,12 +204,112 @@ Include a version file in the sub-project?(yes/no)[no]:
 Do you have sub-projects in the repository?(yes/no)[no]:
 ```
 
-Since we want to automate the versioning through the CI pipelines, we will configure Bitbucket CI configuration file to implement Comet versioning flows.
+Since we want to automate the versioning through the CI pipelines, we will configure Bitbucket CI configuration file to implement Comet versioning flows. Before proceeding to configure the Bitbucket pipelines CI, make sure to add Bitbucket and Docker credentials as environment variables in Bitbucket CI section. In this demo, we'll be using the following variables:
+* BITBUCKET_USERNAME
+* BITBUCKET_APP_PASSWORD
+* DOCKER_HUB_USERNAME
+* DOCKER_HUB_PASSWORD
 
-**Note: in progress**
+Now we can proceed to configure the Bitbucket CI configurations. Add the following configurations for this demo to set up pipelines for version upgrade and automated releases:
+```yaml
+image: atlassian/default-image:2
+
+options:
+  docker: true
+
+definitions:
+  steps:
+
+    - step: &push-comet-upgrades
+        name: Push Comet Upgrades
+        clone:
+          depth: full
+        script:
+          - git log
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - git push origin
+
+    - step: &release
+        name: Release version
+        image:
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        clone:
+          depth: full
+        script:
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - >-
+            comet
+            --debug
+            --run release
+            --username ${BITBUCKET_USERNAME}
+            --password ${BITBUCKET_APP_PASSWORD}
+            --connection-type https
+            --push
+
+    - step: &upgrade-version
+        name: Upgrade Version
+        image:
+          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        clone:
+          depth: full
+        script:
+          - git remote set-url origin https://${BITBUCKET_USERNAME}:${BITBUCKET_APP_PASSWORD}@bitbucket.org/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch origin
+          - >-
+            comet
+            --debug
+            --run branch-flow
+            --username ${BITBUCKET_USERNAME}
+            --password ${BITBUCKET_APP_PASSWORD}
+            --connection-type https
+
+    - step: &build-dummy-1
+        name: Build dummy 1
+        condition:
+          changesets:
+            includePaths:
+              - "dummy-1/**"
+        script:
+          - echo "Dummy 1 demo"
+          
+    - step: &build-dummy-2
+        name: Build dummy 2
+        condition:
+          changesets:
+            includePaths:
+              - "dummy-2/**"
+        script:
+          - echo "Dummy 2 demo"
+
+pipelines:
+  custom:
+    release:
+      - step: *release
+
+  default:
+    - step:
+        <<: *upgrade-version
+        name: Generate Comet Config
+        artifacts:
+          - "**"
+          - ".**"
+    - parallel:
+      - step: *build-dummy-1
+      - step: *build-dummy-2
+    - step: *push-comet-upgrades
+```
 
 ## Contributing
-
+n/a
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
