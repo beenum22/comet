@@ -319,6 +319,25 @@ class ConfigParser(object):
             logger.debug(err)
             raise
 
+    def get_projects(self):
+        """
+        Gets the names for all Comet-managed projects.
+
+        :return: list
+        :raises Exception:
+            raises an exception if it fails to write to the YAML-based Comet configuration file
+        """
+        try:
+            assert os.path.exists(self.config_path), f"Unable to find the YAML configuration file [{self.config_path}]"
+            assert self.config, f"Please load the YAML configuration file first [{self.config_path}]"
+            projects = []
+            for idx, project_dict in enumerate(self.config["projects"]):
+                projects.append(project_dict["path"].lstrip('/.'))
+            return projects
+        except AssertionError as err:
+            logger.debug(err)
+            raise Exception(f"Failed to get project names from the YAML configuration file")
+
     def get_project_version(self, project_path: str, version_type: str = "stable") -> str:
         """
         Fetches the specified version type in :param:`version_type` for the specified project in :param:`project_path`.

@@ -92,6 +92,11 @@ def main() -> None:
             version="%(prog)s " + __version__
             )
         version_group.add_argument(
+            "--projects",
+            action="store_true",
+            help="Print all the project names"
+        )
+        version_group.add_argument(
             "--project-dev-version",
             type=str,
             nargs='+',
@@ -191,7 +196,11 @@ def main() -> None:
         else:
             banner()
             comet_logger.setLevel(logging.INFO)
-        if args.project_dev_version or args.project_stable_version:
+        if args.projects:
+            project_config = ConfigParser(config_path=args.project_config)
+            project_config.read_config()
+            print(" ".join(project_config.get_projects()))
+        elif args.project_dev_version or args.project_stable_version:
             project_config = ConfigParser(config_path=args.project_config)
             project_config.read_config()
             if args.project_dev_version:
