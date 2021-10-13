@@ -562,8 +562,8 @@ class Scm(object):
         """
         try:
             logger.debug(f"Merging source branch [{source_branch}] into destination branch [{destination_branch}]")
-            source_branch = self.repo_object.heads[source_branch]
-            destination_branch = self.repo_object.heads[destination_branch]
+            source_branch = self.repo_object.refs[source_branch]
+            destination_branch = self.repo_object.refs[destination_branch]
             self.repo_object.git.checkout(destination_branch)
             self.repo_object.git.merge(source_branch)
             # merge_base = self.repo_object.merge_base(source_branch, destination_branch)
