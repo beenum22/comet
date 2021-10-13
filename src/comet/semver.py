@@ -529,7 +529,14 @@ class SemVer(object):
                 logger.debug(f"Updating the version file [{file}]")
                 with open(file, "r+") as f:
                     data = f.read()
-                    data = re.sub(f"{re.escape(self.version_regex + old_version)}", f"{self.version_regex}{new_version}", data)
+                    if self.version_regex:
+                        regex = re.compile(self.version_regex)
+                        if regex.groups > 2:
+                            logger.warning(f"Only first captured group in the regular expressions will be used while "
+                                           f"substituting the version string in files")
+                        data = re.sub(f"{regex}", f"\g<1>{new_version}", data)
+                    else:
+                        data = re.sub(f"{old_version}", f"{new_version}", data)
                     f.seek(0)
                     f.write(data)
                     f.truncate()
