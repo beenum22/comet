@@ -287,47 +287,35 @@ class Scm(object):
             if self.stable_branch not in local_branches:
                 logger.debug(
                     f"Stable branch [{self.stable_branch}] not found locally. "
-                    f"Pulling stable branch [{self.stable_branch}] from the remote alias [{self.get_remote_alias()}]"
-                )
-                assert f"{self.get_remote_alias()}/{self.stable_branch}" in remote_branches, \
+                    f"Adding remote alias [{self.get_remote_alias()}] to the stable branch name "
+                    f"[{self.get_remote_alias()}/{self.stable_branch}]")
+                self.stable_branch = f"{self.get_remote_alias()}/{self.stable_branch}"
+                assert self.stable_branch in remote_branches, \
                     "Stable branch [%s] does not exist on remote [%s]" % (
-                        f"{self.get_remote_alias()}/{self.stable_branch}",
+                        self.stable_branch,
                         self.get_remote_alias()
                     )
-                self.pull_remote_branch(
-                    self.get_remote_alias(),
-                    f"{self.get_remote_alias()}/{self.stable_branch}:{self.stable_branch}"
-                )
             if self.development_branch not in local_branches:
                 logger.debug(
                     f"Development branch [{self.development_branch}] not found locally. "
-                    f"Pulling development branch [{self.development_branch}] from the remote alias "
-                    f"[{self.get_remote_alias()}]"
-                )
-                assert f"{self.get_remote_alias()}/{self.development_branch}" in remote_branches, \
+                    f"Adding remote alias [{self.get_remote_alias()}] to the development branch name "
+                    f"[{self.get_remote_alias()}/{self.development_branch}]")
+                self.development_branch = f"{self.get_remote_alias()}/{self.development_branch}"
+                assert self.development_branch in remote_branches, \
                     "Development branch [%s] does not exist on remote [%s]" % (
-                        f"{self.get_remote_alias()}/{self.development_branch}",
+                        self.development_branch,
                         self.get_remote_alias()
                     )
-                self.pull_remote_branch(
-                    self.get_remote_alias(),
-                    f"{self.get_remote_alias()}/{self.development_branch}:{self.development_branch}"
-                )
             if self.source_branch not in local_branches:
                 logger.debug(
                     f"Source branch [{self.source_branch}] not found locally. "
-                    f"Pulling source branch [{self.source_branch}] from the remote alias "
-                    f"[{self.get_remote_alias()}]"
-                )
-                assert f"{self.get_remote_alias()}/{self.source_branch}" in remote_branches, \
+                    f"Adding remote alias [{self.get_remote_alias()}] to the source branch name "
+                    f"[{self.get_remote_alias()}/{self.source_branch}]")
+                assert self.source_branch in remote_branches, \
                     "Source branch [%s] does not exist on remote [%s]" % (
-                        f"{self.get_remote_alias()}/{self.source_branch}",
+                        self.source_branch,
                         self.get_remote_alias()
                     )
-                self.pull_remote_branch(
-                    self.get_remote_alias(),
-                    f"{self.get_remote_alias()}/{self.source_branch}:{self.source_branch}"
-                )
             return True
         except AssertionError as err:
             logger.debug(err)
@@ -419,22 +407,6 @@ class Scm(object):
                          self.repo,
                          self.scm_provider
                          )
-            raise
-
-    @CometUtilities.unstable_function_warning
-    def pull_remote_branch(self, origin: str, branch: str) -> None:
-        """
-        Pulls remote branch from the remote/origin repository.
-
-        :param origin: Remote origin name for the Git repository
-        :param branch: Remote branch name to be pulled from the Git repository
-        :return: None
-        """
-        try:
-            logger.debug(f"Pulling remote branch [{branch}] from the remote [{origin}] repository")
-            self.repo_object.git.pull(origin, branch)
-        except GitError as err:
-            logger.debug(err)
             raise
 
     def find_new_commits(self, source_branch: str, reference_branch: str, path: str = ".") -> list:
@@ -593,13 +565,13 @@ class Scm(object):
             logger.debug(f"Merging source branch [{source_branch}] into destination branch [{destination_branch}]")
             source_branch = self.repo_object.refs[source_branch]
             destination_branch = self.repo_object.refs[destination_branch]
-            self.repo_object.git.checkout(destination_branch)
+            self.repo_object.git.checkout(str(destination_branch).lstrip(f"{self.get_remote_alias()}/"))
             self.repo_object.git.merge(source_branch)
             # merge_base = self.repo_object.merge_base(source_branch, destination_branch)
             # self.repo_object.index.merge_tree(destination_branch, base=merge_base)
             # self.repo_object.index.commit(f"chore: merge '{source_branch}' into '{destination_branch}')",
             #                               parent_commits=(source_branch.commit, destination_branch.commit))
-            self.repo_object.git.checkout(self.source_branch)
+            self.repo_object.git.checkout(str(self.source_branch).lstrip(f"{self.get_remote_alias()}/"))
         except GitError as err:
             logger.debug(err)
             raise
