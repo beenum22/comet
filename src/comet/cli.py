@@ -14,7 +14,7 @@ from .work_flows import GitFlow
 from .config import ConfigParser
 
 __author__ = 'Muneeb Ahmad'
-__version__ = '0.2.0-dev.17'
+__version__ = '0.2.0-dev.18'
 __license__ = "MIT"
 __maintainer__ = "Muneeb Ahmad"
 __email__ = "muneeb@ng-voice.com"
