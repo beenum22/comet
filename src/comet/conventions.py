@@ -120,7 +120,7 @@ class ConventionalCommits(object):
                                fr"\n?\n?(?P<body>[\s\S]*\n\n)?\n?(?P<footers>[\s\S]*)"
     IGNORED_COMMIT_REGEX: List[str] = [
         r"^Merge(.*?)",
-        r"chore: auto update comet config and project version files"
+        r"^chore: auto update comet config and project version files"
     ]
     SEMVER_BUMP_KEYWORDS: Dict[str, List[str]] = {
         SemVer.MAJOR: [
