@@ -536,7 +536,7 @@ class SemVer(object):
                                            f"substituting the version string in files")
                         data = re.sub(f"{self.version_regex}", f"\g<1>{new_version}", data)
                     else:
-                        data = re.sub(f"{old_version}", f"{new_version}", data)
+                        data = re.sub(f"{re.escape(old_version)}", f"{new_version}", data)
                     f.seek(0)
                     f.write(data)
                     f.truncate()
