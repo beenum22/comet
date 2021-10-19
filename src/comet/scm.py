@@ -321,6 +321,17 @@ class Scm(object):
             logger.debug(err)
             return False
 
+    def _strip_remote_alias(self, branch: str) -> str:
+        """
+        Removes remote alias prefix from the branch.
+
+        This method is required when pushing changes to the remote branch.
+        :param branch: Git branch name
+        :return: Git branch name without remote alias prefix
+        """
+        logger.debug(f"Stripping remote alias [{self.get_remote_alias()}] from the branch name")
+        return str(branch).lstrip(f"{self.get_remote_alias()}/")
+
     def generate_repo_url(self) -> str:
         """
         Generates a remote Git repository URL according to the provided attributes and active SCM URL.
@@ -565,7 +576,7 @@ class Scm(object):
             logger.debug(f"Merging source branch [{source_branch}] into destination branch [{destination_branch}]")
             source_branch = self.repo_object.refs[source_branch]
             destination_branch = self.repo_object.refs[destination_branch]
-            self.repo_object.git.checkout(str(destination_branch).lstrip(f"{self.get_remote_alias()}/"))
+            self.repo_object.git.checkout(self._strip_remote_alias(destination_branch))
             self.repo_object.git.merge(source_branch)
             # merge_base = self.repo_object.merge_base(source_branch, destination_branch)
             # self.repo_object.index.merge_tree(destination_branch, base=merge_base)
@@ -576,7 +587,6 @@ class Scm(object):
             logger.debug(err)
             raise
 
-    # TODO: Add support for pushing tags
     def push_changes(self, branch: str = None, tags: str = False) -> None:
         """
         Push local Git changes to the remote/upstream Git repository from an optional specific source Git branch.
@@ -589,7 +599,7 @@ class Scm(object):
         """
         try:
             logger.info(f"Pushing local changes to remote [{self.get_remote_alias()}]")
-            self.repo_object.remote().push(branch, tags=tags)
+            self.repo_object.remote().push(self._strip_remote_alias(branch), tags=tags)
         except GitError as err:
             logger.debug(err)
             raise
