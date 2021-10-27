@@ -3,6 +3,7 @@ import requests
 from paramiko import SSHClient, AutoAddPolicy, RSAKey
 from paramiko.ssh_exception import AuthenticationException, SSHException
 import os
+import re
 import socket
 from git import Repo
 from git.exc import InvalidGitRepositoryError, NoSuchPathError, GitError
@@ -330,7 +331,7 @@ class Scm(object):
         :return: Git branch name without remote alias prefix
         """
         logger.debug(f"Stripping remote alias [{self.get_remote_alias()}] from the branch name")
-        return str(branch).lstrip(f"{self.get_remote_alias()}/")
+        return re.sub(f"{self.get_remote_alias()}/", "", str(branch))
 
     def generate_repo_url(self) -> str:
         """
