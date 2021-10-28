@@ -129,7 +129,7 @@ jobs:
           push: true
           tags: beenum/comet:${{ env.VERSION }}
   sync:
-    name: Push Docker Image
+    name: Sync Dev with Stable
     runs-on: ubuntu-latest
     needs:
       - release
