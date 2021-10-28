@@ -14,10 +14,10 @@ from .work_flows import GitFlow
 from .config import ConfigParser
 
 __author__ = 'Muneeb Ahmad'
-__version__ = '0.2.0-dev.23'
+__version__ = '0.2.0-dev.23+1530316e91649aab032e1a4b69260835d81d0ca9'
 __license__ = "MIT"
 __maintainer__ = "Muneeb Ahmad"
-__email__ = "muneeb@ng-voice.com"
+__email__ = "muneeb.gandapur@gmail.com"
 
 
 def banner():

@@ -1,6 +1,6 @@
 FROM python:3.9.6-slim
 
-LABEL maintainer="muneeb@ng-voice.com"
+LABEL maintainer="muneeb.gandapur@gmail.com"
 
 WORKDIR comet
 COPY . ./

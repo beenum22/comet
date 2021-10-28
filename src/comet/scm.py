@@ -67,6 +67,12 @@ class Scm(object):
                 "bitbucket.org",
                 "bitbucket.com"
             ]
+        },
+        "github": {
+            "ssh_username": "git",
+            "urls": [
+                "github.com"
+            ]
         }
     }
 

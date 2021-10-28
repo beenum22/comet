@@ -70,13 +70,13 @@ Comet can be installed from the source repository using [pip](https://pip.pypa.i
 
 Execute the following commands to install and use Comet from source repository:
 ```bash
-pip install git+https://bitbucket.org/ngvoice/comet.git@develop
+pip install git+https://github.com/beenum22/comet
 comet --version
 ```
 
 Execute the following commands to use pre-built Comet from the Docker registry:
 ```bash
-docker run --rm -ti dockerhub.ng-voice.com/comet:latest --version
+docker run --rm -ti beenum/comet:latest --version
 ```
 
 ## Usage
@@ -234,7 +234,7 @@ definitions:
     - step: &release
         name: Release version
         image:
-          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          name: beenum/comet:0.2.0-dev.9
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
         clone:
@@ -255,7 +255,7 @@ definitions:
     - step: &upgrade-version
         name: Upgrade Version
         image:
-          name: dockerhub.ng-voice.com/comet:0.2.0-dev.9
+          name: beenum/comet:0.2.0-dev.9
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
         clone:

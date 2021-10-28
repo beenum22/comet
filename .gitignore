@@ -2,3 +2,4 @@
 venv/
 src/comet/__pycache__/
 src/comet.egg-info
+build

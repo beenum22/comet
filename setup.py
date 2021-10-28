@@ -30,13 +30,13 @@ pkgs, links = get_requirements()
 
 setup(
     name='comet',
-    version='0.2.0-dev.23',
+    version='0.2.0-dev.23+1530316e91649aab032e1a4b69260835d81d0ca9',
     license='MIT',
     description='Comet is a simple tool to automate/facilitate automated release cycle.',
     long_description=readme(),
-    url='http://bitbucket.org/ngvoice/comet',
+    url='http://github.com/beenum22/comet',
     author='Muneeb Ahmad',
-    author_email='muneeb@ng-voice.com',
+    author_email='muneeb.gandapur@gmail.com',
     entry_points = {
             'console_scripts': ['comet=comet.cli:main']
     },

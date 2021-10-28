@@ -1,0 +1,47 @@
+name: Default branch workflow for Comet
+on:
+  push:
+  pull_request:
+    branches:
+      - develop
+      - master
+
+jobs:
+  lint-last-message:
+    name: Lint Commit Message
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repo
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v4
+        name: Lint Commit Message
+        with:
+          configFile: .commitlint.js
+          helpURL: https://www.conventionalcommits.org/en/v1.0.0/
+  python-unit-test:
+    name: Execute Comet Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Setup Python Env
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Run Unit Tests
+        uses: onichandame/python-test-action@master
+        with:
+          deps_list: 'requirements.txt'
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          push: false
+          tags: beenum/comet:latest
