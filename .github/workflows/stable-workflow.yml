@@ -1,4 +1,4 @@
-name: Development branch workflow for Comet
+name: Stable Branch
 on:
   push:
     branches:
