@@ -156,6 +156,9 @@ class GitFlow(object):
         self.scm = None
         self.project_config = None
         self.projects_semver_objects = {}
+        self.source_branch = None
+        self.stable_branch = None
+        self.development_branch = None
         self.prepare_workflow()
 
     def _sanitize_paths(self) -> None:
@@ -169,27 +172,122 @@ class GitFlow(object):
         self.project_config_path = os.path.normpath(f"{self.project_local_path}/{self.project_config_path}")
         logger.debug(f"Sanitized paths according to the root/repo directory [{self.project_local_path}]")
 
-    @CometUtilities.unsupported_function_error
-    def _generate_projects_mapping(self) -> None:
+    @CometUtilities.deprecation_facilitation_warning
+    def _has_deprecated_versioning_format(self) -> bool:
         """
-        .
+        Returns true if the deprecated versioning format is configured where 'dev_version' and 'stable_version'
+        parameters are configured for any Comet-managed project.
 
-        :return: None
+        :return:
+            Returns the 'True' if the deprecated versioning format is configured or 'False' otherwise
         """
-        logger.debug(f"Generating sub-projects information mapping")
-        common_prefix = os.path.commonprefix(self.projects)
-        for project in self.projects:
-            project['semver_object'] = SemVer(
-                project_path=project,
-                version_files=project[version_files]
+        if self.project_config.has_deprecated_config_parameter("dev_version") or \
+                self.project_config.has_deprecated_config_parameter("stable_version"):
+            logger.warning(
+                f"Deprecated versioning format is configured for the Comet-managed projects that uses 'dev_version' "
+                f"and 'stable_version' parameters"
             )
-            project_mapping = {
-                "name": project.replace(common_prefix, ""),
-                "path": project,
-                "semver_object": None
-            }
-            self.projects_info.append(project_mapping)
-        logger.debug(f"Generated sub-projects information mapping: {self.projects_info}")
+            return True
+        return False
+
+    @CometUtilities.deprecation_facilitation_warning
+    def _set_deprecated_version_type(self, version_type: str) -> [str, None]:
+        """
+        Sets the reference version type according to :param:`version_type` for the specified project if the
+        deprecated versioning format is configured where 'dev_version' and 'stable_version' parameters are
+        configured for a Comet-managed project.
+
+        :param version_type:
+            Reference version type to set if deprecated versioning format is configured in the
+            Comet configuration file
+        :return:
+            Reference version type if the deprecated versioning format is configured or 'None' otherwise
+        """
+        if self._has_deprecated_versioning_format():
+            logger.warning(
+                f"Version type is configured for the deprecated project versioning logic that uses 'dev_version' "
+                f"and 'stable_version' parameters"
+            )
+            return version_type
+        return None
+
+    def _prepare_branches(self) -> None:
+        """
+        Prepare the Git branches required as a pre-requisite for the GitFlow by generating the reference branch
+        names according to the local Git repository state. In the method, the following operations are performed:
+
+            1. Remote alias/upstream repository name is appended to the branch names if they don't exist locally
+            on the remote/upstream Git repository
+            2. Source branch name is set to the current active branch
+            3. Stable and development branch names are set according to the Comet configuration
+
+        :return: Returns `True` if the branches preparation is successful or `False`
+                 otherwise
+        :rtype: bool
+        """
+        try:
+            self.source_branch = self.scm.get_active_branch()
+            self.stable_branch = self.project_config.config["stable_branch"]
+            self.development_branch = self.project_config.config["development_branch"]
+            self.release_branch_prefix = self.project_config.config["release_branch_prefix"]
+            if (
+                    not self.scm.has_local_branch(self.source_branch) or
+                    not self.scm.has_local_branch(self.stable_branch) or
+                    not self.scm.has_local_branch(self.development_branch)
+            ):
+                logger.debug(
+                    f"Some of the Git branches does not exist locally. Using remote "
+                    f"alias with branch names to access branches from the upstream "
+                    f"repository"
+                )
+                assert self.scm.get_remote_alias(), \
+                    f"No remote alias is not configured on the local " \
+                    f"repository. Either configure a remote alias/upstream repository " \
+                    f"or make sure all the required branches (stable, development and " \
+                    f"source) exist on the local repository"
+
+            if not self.scm.has_local_branch(self.source_branch):
+                logger.debug(
+                    f"Source branch [{self.source_branch}] does not exist locally"
+                )
+                logger.debug(
+                    f"Adding remote alias [{self.scm.get_remote_alias()}] to the source branch name "
+                    f"[{self.scm.get_remote_alias()}/{self.source_branch}]")
+                self.source_branch = f"{self.scm.get_remote_alias()}/{self.source_branch}"
+                assert self.scm.has_remote_branch(self.source_branch), \
+                    f"Source branch [{self.source_branch}] does not exist on the remote alias/upstream repository" \
+                    f"[{self.scm.get_remote_alias()}]"
+
+            if not self.scm.has_local_branch(self.stable_branch):
+                logger.debug(
+                    f"Stable branch [{self.source_branch}] does not exist locally"
+                )
+                logger.debug(
+                    f"Adding remote alias [{self.scm.get_remote_alias()}] to the stable branch name "
+                    f"[{self.scm.get_remote_alias()}/{self.stable_branch}]")
+                self.stable_branch = f"{self.scm.get_remote_alias()}/{self.stable_branch}"
+                assert self.scm.has_remote_branch(self.stable_branch), \
+                    f"Stable branch [{self.stable_branch}] does not exist on the remote alias/upstream repository" \
+                    f"[{self.scm.get_remote_alias()}]"
+
+            if not self.scm.has_local_branch(self.development_branch):
+                logger.debug(
+                    f"Development branch [{self.source_branch}] does not exist locally"
+                )
+                logger.debug(
+                    f"Development branch [{self.development_branch}] not found locally. "
+                    f"Adding remote alias [{self.scm.get_remote_alias()}] to the development branch name "
+                    f"[{self.scm.get_remote_alias()}/{self.development_branch}]")
+                self.development_branch = f"{self.scm.get_remote_alias()}/{self.development_branch}"
+                assert self.scm.has_remote_branch(self.development_branch), \
+                    f"Development branch [{self.development_branch}] does not exist on the remote alias/upstream " \
+                    f"repository [{self.scm.get_remote_alias()}]"
+        except AssertionError as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to prepare the required branches for the workflows. Verify that the required branches for "
+                f"GitFlow based development exists in the local/remote Git repository"
+            )
 
     def prepare_workflow(self) -> None:
         """
@@ -214,28 +312,26 @@ class GitFlow(object):
                 repo=self.project_config.config["repo"],
                 workspace=self.project_config.config["workspace"],
                 repo_local_path=self.project_local_path,
-                ssh_private_key_path=self.ssh_private_key_path,
-                development_branch=self.project_config.config["development_branch"],
-                stable_branch=self.project_config.config["stable_branch"]
+                ssh_private_key_path=self.ssh_private_key_path
             )
+
+            self._prepare_branches()
         except Exception:
             raise
 
     # TODO: Remove redundant commented out lines
-    def prepare_versioning(self, reference_version_type: str = "stable") -> None:
+    @CometUtilities.deprecated_arguments_warning("reference_version_type")
+    def prepare_versioning(self, reference_version_type: str = "") -> None:
         """
         Prepares project/s specific SemVer instances according to the reference version type specified in
         :var:`reference_version_type`.
 
+        :param reference_version_type: Reference version type (Deprecated)
         :return: None
         :raises Exception:
             raises an exception if it fails to initialize version for any of the projects
         """
         try:
-            # assert reference_version_type in ConfigParser.SUPPORTED_VERSION_TYPES, \
-            #     f"Invalid reference version type" \
-            #     f"[{reference_version_type}({ConfigParser.SUPPORTED_VERSION_TYPES})] specified! " \
-            #     f"Supported values are [{','.join([str(i) for i in ConfigParser.SUPPORTED_VERSION_TYPES])}]"
             for project in self.project_config.config["projects"]:
                 self.projects_semver_objects[project["path"]] = SemVer(
                     project_path=project["path"],
@@ -248,6 +344,57 @@ class GitFlow(object):
             raise
 
     @CometUtilities.unstable_function_warning
+    def release_flow(self, branches: bool = False) -> None:
+        """
+        Executes the Release flow according to the specified parameters.
+        There are two types of Release flows:
+            1. Direct release of the source/active branch to the stable branch
+            2. Release Candidate branch creation
+
+        :param branches: Branches flag that specifies creation of release candidate branches only
+        :return: None
+        """
+        if branches:
+            assert len(self.project_config.config["projects"]) > 0, \
+                f"Release flow is currently supported for repositories with one project only"
+            self.release_candidate()
+        else:
+            self.release_to_stable(self.source_branch)
+
+    def sync_flow(self) -> None:
+        """
+        Syncs the stable branch with the development branch.
+
+        :return: None
+        """
+        logger.info(f"Syncing stable branch [{self.stable_branch}] with the development branch "
+                    f"[{self.development_branch}]")
+        self.scm.merge_branches(
+            source_branch=self.stable_branch,
+            destination_branch=self.development_branch
+        )
+        if self.push_changes:
+            self.scm.push_changes(
+                branch=self.development_branch,
+                tags=False
+            )
+
+    def branch_flows(self) -> None:
+        """
+        Executes the branch flow according to the source or active branch on the local Git repository.
+
+        :return: None
+        """
+        if self.source_branch == self.project_config.config["development_branch"]:
+            self.development_branch_flow()
+        elif self.source_branch == self.project_config.config["stable_branch"]:
+            self.stable_branch_flow()
+        elif self.project_config.config["release_branch_prefix"] in self.source_branch:
+            self.release_branch_flow()
+        else:
+            self.default_branch_flow()
+
+    @CometUtilities.unstable_function_warning
     def release_to_stable(self, release_branch: str) -> None:
         """
         Releases a new version for the Comet-managed project(s).
@@ -258,20 +405,19 @@ class GitFlow(object):
         :return: None
         """
         allowed_branches = [
-            self.project_config.config["development_branch"],
-            self.project_config.config["release_branch_prefix"]
+            self.development_branch,
+            self.release_branch_prefix
         ]
-        assert len([match for match in allowed_branches if (match in self.scm.source_branch)]) > 0, \
+        assert len([match for match in allowed_branches if (match in release_branch)]) > 0, \
             f"Only development branch and release candidate branches are allowed to be released!"
-
-        self.prepare_versioning("dev")
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
             current_dev_version = self.projects_semver_objects[project['path']].get_version()
             release_version = self.projects_semver_objects[project['path']].get_final_version()
             commits = self.scm.find_new_commits(
                 release_branch,
-                self.scm.stable_branch,
+                self.stable_branch,
                 project["path"]
             )
             if commits:
@@ -283,13 +429,14 @@ class GitFlow(object):
                 self.project_config.update_project_version(
                     project["path"],
                     release_version,
-                    version_type="dev"
+                    version_type=self._set_deprecated_version_type("stable")
                 )
-                self.project_config.update_project_version(
-                    project["path"],
-                    release_version,
-                    version_type="stable"
-                )
+                if self._has_deprecated_versioning_format():
+                    self.project_config.update_project_version(
+                        project["path"],
+                        release_version,
+                        version_type=self._set_deprecated_version_type("dev")
+                    )
                 changed_projects.append(project['path'])
             else:
                 logger.debug(f"Skipping release for sub-project [{project['path']}]")
@@ -302,8 +449,8 @@ class GitFlow(object):
                 push=self.push_changes
             )
             self.scm.merge_branches(
-                source_branch=self.scm.development_branch,
-                destination_branch=self.scm.stable_branch
+                source_branch=self.development_branch,
+                destination_branch=self.stable_branch
             )
 
         for project in changed_projects:
@@ -313,7 +460,7 @@ class GitFlow(object):
 
         if self.push_changes:
             self.scm.push_changes(
-                branch=self.scm.stable_branch,
+                branch=self.stable_branch,
                 tags=True
             )
 
@@ -326,7 +473,13 @@ class GitFlow(object):
 
         :return: None
         """
-        self.prepare_versioning("dev")
+        version_type = None
+        if "version" not in self.project_config.config["projects"][0]:
+            logger.warning(f"Deprecated version parameters [dev_version, stable_version] are set in the "
+                           f"Comet configuration")
+            version_type = "dev"
+        self.prepare_versioning(reference_version_type=version_type)
+
         changed_projects = []
         for project in self.project_config.config["projects"]:
             release_candidate = self.projects_semver_objects[project['path']].get_final_version()
@@ -364,57 +517,6 @@ class GitFlow(object):
             )
 
     @CometUtilities.unstable_function_warning
-    def release_flow(self, branches: bool = False) -> None:
-        """
-        Executes the Release flow according to the specified parameters.
-        There are two types of Release flows:
-            1. Direct release of the source/active branch to the stable branch
-            2. Release Candidate branch creation
-
-        :param branches: Branches flag that specifies creation of release candidate branches only
-        :return: None
-        """
-        if branches:
-            assert len(self.project_config.config["projects"]) > 0, \
-                f"Release flow is currently supported for repositories with one project only"
-            self.release_candidate()
-        else:
-            self.release_to_stable(self.scm.source_branch)
-
-    def sync_flow(self) -> None:
-        """
-        Syncs the stable branch with the development branch.
-
-        :return: None
-        """
-        logger.info(f"Syncing stable branch [{self.scm.stable_branch}] with the development branch "
-                    f"[{self.scm.development_branch}]")
-        self.scm.merge_branches(
-            source_branch=self.scm.stable_branch,
-            destination_branch=self.scm.development_branch
-        )
-        if self.push_changes:
-            self.scm.push_changes(
-                branch=self.scm.development_branch,
-                tags=False
-            )
-
-    def branch_flows(self) -> None:
-        """
-        Executes the branch flow according to the source or active branch on the local Git repository.
-
-        :return: None
-        """
-        if self.scm.source_branch == self.project_config.config["development_branch"]:
-            self.development_branch_flow()
-        elif self.scm.source_branch == self.project_config.config["stable_branch"]:
-            self.stable_branch_flow()
-        elif self.project_config.config["release_branch_prefix"] in self.scm.source_branch:
-            self.release_branch_flow()
-        else:
-            self.default_branch_flow()
-
-    @CometUtilities.unstable_function_warning
     def stable_branch_flow(self):
         """
         Executes the stable branch flow according to the designed Git flow process.
@@ -431,19 +533,33 @@ class GitFlow(object):
             f"make sure to merge all the version bumps on a Stable branch into the Development branch after the "
             f"execution."
         )
-        self.prepare_versioning("stable")
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("stable"))
         changed_projects = []
+        # TODO: Initialize versioning variables
         for project in self.project_config.config["projects"]:
-            commits = self.scm.find_new_commits(
-                self.scm.stable_branch,
-                self.scm.development_branch,
-                project["path"]
-            )
+
+            if "history" in project and project["history"]["latest_bump_commit_hash"]:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    project["path"]
+                )
+            else:
+                commits = self.scm.find_new_commits(
+                    self.stable_branch,
+                    self.development_branch,
+                    project["path"]
+                )
             commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+                commit for commit in commits if not ConventionalCommits.ignored_commit(
+                    self.scm.get_commit_message(commit)
+                )
             ]
+
             for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(commit.message)
+                next_bump = ConventionalCommits.get_bump_type(
+                    self.scm.get_commit_message(commit)
+                )
                 logger.debug(
                     f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
                     f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
@@ -454,7 +570,7 @@ class GitFlow(object):
                     release=next_bump, pre_release=None)
             current_version = self.project_config.get_project_version(
                 project["path"],
-                version_type="stable"
+                version_type=self._set_deprecated_version_type("stable")
             )
             new_version = self.projects_semver_objects[project['path']].get_version()
             if current_version != new_version:
@@ -465,13 +581,21 @@ class GitFlow(object):
                 self.project_config.update_project_version(
                     project["path"],
                     new_version,
-                    version_type="stable"
+                    version_type=self._set_deprecated_version_type("stable")
                 )
-                self.project_config.update_project_version(
-                    project["path"],
-                    new_version,
-                    version_type="dev"
-                )
+                if not self._has_deprecated_versioning_format():
+                    new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
+                    self.project_config.update_version_history(
+                        project["path"],
+                        SemVer.SUPPORTED_RELEASE_TYPES[next_bump],
+                        new_version_hex
+                    )
+                else:
+                    self.project_config.update_project_version(
+                        project["path"],
+                        new_version,
+                        version_type=self._set_deprecated_version_type("dev")
+                    )
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
@@ -487,7 +611,7 @@ class GitFlow(object):
             self.scm.add_tag(f"{project_name}{'-' if project_name else ''}{release_version}")
         if self.push_changes:
             self.scm.push_changes(
-                branch=self.scm.stable_branch,
+                branch=self.stable_branch,
                 tags=True
             )
 
@@ -502,34 +626,43 @@ class GitFlow(object):
         :return: None
         """
         logger.info("Executing default branch GitFlow")
-        self.prepare_versioning("dev")
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
             current_version = self.projects_semver_objects[project['path']].get_version()
             logger.debug(
                 f"Current Version for sub-project [{project['path']}]: {current_version}"
             )
-            commits = self.scm.find_new_commits(
-                self.scm.source_branch,
-                self.scm.development_branch,
-                project["path"]
-            )
+            if "history" in project and project["history"]["latest_bump_commit_hash"]:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    project["path"]
+                )
+            else:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    self.development_branch,
+                    project["path"]
+                )
             commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+                commit for commit in commits if not ConventionalCommits.ignored_commit(
+                    self.scm.get_commit_message(commit)
+                )
             ]
             if commits:
+                version_hex_change = False
                 current_version_hex = None
-                commit_hexes = [commit.hexsha for commit in commits]
+                new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
                 if self.projects_semver_objects[project['path']].version_object.build:
                     current_version_hex = \
                         self.projects_semver_objects[project['path']].version_object.build.split(".")[0]
-                if current_version_hex and len(commit_hexes) > 1 and current_version_hex in commit_hexes:
-                    new_version_hex = commit_hexes[-1]
-                else:
-                    new_version_hex = commit_hexes[0]
-                if new_version_hex:
+                if not current_version_hex or (current_version_hex and current_version_hex != new_version_hex):
+                    version_hex_change = True
+
+                if version_hex_change:
                     logger.debug(f"New commits found for project [{project['path']}] "
-                                 f"in reference to development branch [{self.scm.development_branch}]")
+                                 f"in reference to development branch [{self.development_branch}]")
                     self.projects_semver_objects[project["path"]].bump_version(
                         release=SemVer.BUILD,
                         pre_release="dev",
@@ -546,7 +679,7 @@ class GitFlow(object):
                 self.project_config.update_project_version(
                     project["path"],
                     new_version,
-                    version_type="dev"
+                    version_type=self._set_deprecated_version_type("dev")
                 )
                 changed_projects.append(project['path'])
             else:
@@ -575,19 +708,34 @@ class GitFlow(object):
         :return: None
         """
         logger.info("Executing Release branch GitFlow")
-        self.prepare_versioning("dev")
+        version_type = None
+        if "version" not in self.project_config.config["projects"][0]:
+            version_type = "dev"
+        self.prepare_versioning(reference_version_type=version_type)
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            commits = self.scm.find_new_commits(
-                self.scm.source_branch,
-                self.scm.development_branch,
-                project["path"]
-            )
+            if "release_commit_sha" in project and project["release_commit_sha"]:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    project["release_commit_sha"],
+                    project["path"]
+                )
+            else:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    self.development_branch,
+                    project["path"]
+                )
             commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+                commit for commit in commits if not ConventionalCommits.ignored_commit(
+                    self.scm.get_commit_message(commit)
+                )
             ]
+
             for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(commit.message)
+                next_bump = ConventionalCommits.get_bump_type(
+                    self.scm.get_commit_message(commit)
+                )
                 logger.debug(
                     f"Current Version: {self.projects_semver_objects[project['path']].get_version()}"
                 )
@@ -608,7 +756,7 @@ class GitFlow(object):
                 self.project_config.update_project_version(
                     project["path"],
                     new_version,
-                    version_type="dev"
+                    version_type=version_type
                 )
                 changed_projects.append(project['path'])
             else:
@@ -636,25 +784,42 @@ class GitFlow(object):
         :return: None
         """
         logger.info("Executing Development branch GitFlow")
-        self.prepare_versioning("stable")
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("stable"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            past_bump = SemVer.NO_CHANGE
+            if not self._has_deprecated_versioning_format():
+                past_bump = self.projects_semver_objects[project["path"]].get_version_enum_value(
+                    self.project_config.get_project_last_bump_type(project["path"])
+                )
+            else:
+                past_bump = SemVer.NO_CHANGE
             current_bump = SemVer.NO_CHANGE
             current_version = self.project_config.get_project_version(
                 project["path"],
-                version_type="dev"
+                version_type=self._set_deprecated_version_type("dev")
             )
-            commits = self.scm.find_new_commits(
-                self.scm.development_branch,
-                self.scm.stable_branch,
-                project["path"]
-            )
+            if "history" in project and project["history"]["latest_bump_commit_hash"]:
+                commits = self.scm.find_new_commits(
+                    self.source_branch,
+                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    project["path"]
+                )
+            else:
+                commits = self.scm.find_new_commits(
+                    self.development_branch,
+                    self.stable_branch,
+                    project["path"]
+                )
             commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(commit.message)
+                commit for commit in commits if not ConventionalCommits.ignored_commit(
+                    self.scm.get_commit_message(commit)
+                )
             ]
+
             for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(commit.message)
+                next_bump = ConventionalCommits.get_bump_type(
+                    self.scm.get_commit_message(commit)
+                )
                 logger.debug(
                     f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
                     f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
@@ -679,8 +844,15 @@ class GitFlow(object):
                 self.project_config.update_project_version(
                     project["path"],
                     new_version,
-                    version_type="dev"
+                    version_type=self._set_deprecated_version_type("dev")
                 )
+                if not self._has_deprecated_versioning_format():
+                    new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
+                    self.project_config.update_version_history(
+                        project["path"],
+                        SemVer.SUPPORTED_RELEASE_TYPES[past_bump],
+                        new_version_hex
+                    )
                 changed_projects.append(project['path'])
             else:
                 logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
