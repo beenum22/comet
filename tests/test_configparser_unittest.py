@@ -13,6 +13,10 @@ class ConfigParserTest(unittest.TestCase):
     TEST_DEV_VERSION = "0.1.0-dev.2"
     TEST_STABLE_VERSION = "0.1.0"
     TEST_PROJECT_DIRECTORY = "test_project"
+    TEST_PROJECT_HISTORY = {
+        "latest_bump_type": "",
+        "latest_bump_commit_hash": ""
+    }
     TEST_GITFLOW_CONFIG_FILE = ".comet.yml"
     TEST_PROJECT_VERSION_FILE = "VERSION"
 
@@ -47,10 +51,7 @@ class ConfigParserTest(unittest.TestCase):
             {
                 "path": TEST_PROJECT_DIRECTORY,
                 "version": TEST_DEV_VERSION,
-                "history": {
-                    "latest_bump_type": "",
-                    "latest_bump_commit_hash": ""
-                },
+                "history": TEST_PROJECT_HISTORY,
                 "version_regex": "",
                 "version_files": [
                     TEST_PROJECT_VERSION_FILE
@@ -151,6 +152,109 @@ class ConfigParserTest(unittest.TestCase):
                 }]
             )
 
+    def test_has_deprecated_config_parameter(self):
+        logger.info("Executing unit tests for 'ConfigParser.has_deprecated_config_parameter' method")
+
+        configparser_v0 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+
+        configparser_v1 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+
+        logger.debug("Testing 'stable_version' deprecated parameter for v0/old config format")
+        self.assertTrue(
+            configparser_v0.has_deprecated_config_parameter("stable_version")
+        )
+
+        logger.debug("Testing 'stable_version' deprecated parameter for v1/new config format")
+        self.assertFalse(
+            configparser_v1.has_deprecated_config_parameter("stable_version")
+        )
+
+    def test_get_projects(self):
+        logger.info("Executing unit tests for 'ConfigParser.get_projects' method")
+
+        configparser_v0 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+
+        configparser_v1 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+
+        logger.debug("Testing 'projects' fetch for v0/old config format")
+        self.assertEqual(
+            configparser_v0.get_projects(),
+            [self.TEST_PROJECT_DIRECTORY]
+        )
+
+        logger.debug("Testing 'projects' fetch for v1/new config format")
+        self.assertEqual(
+            configparser_v1.get_projects(),
+            [self.TEST_PROJECT_DIRECTORY]
+        )
+
+        logger.debug("Testing projects fetch exception handling")
+        with self.assertRaises(Exception):
+            configparser = ConfigParser(
+                config_path=f"test_comet.yml"
+            )
+            configparser.get_projects()
+
+    def test_get_project_last_bump_type(self):
+        logger.info("Executing unit tests for 'ConfigParser.get_project_last_bump_type' method")
+        configparser_v0 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+
+        configparser_v1 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+
+        logger.debug("Testing 'last_bump_type' exception handling for v0/old config format")
+        with self.assertRaises(Exception):
+            configparser_v0.get_project_last_bump_type(configparser_v0.config["projects"][0]["path"])
+
+        logger.debug("Testing 'last_bump_type' read for v1/new config format")
+        self.assertEqual(
+            configparser_v1.get_project_last_bump_type(configparser_v1.config["projects"][0]["path"]),
+            ""
+        )
+
+    def test_get_project_history(self):
+        logger.info("Executing unit tests for 'ConfigParser.get_project_history' method")
+        configparser_v0 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+
+        configparser_v1 = ConfigParser(
+            config_path=f"test_comet.yml"
+        )
+        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+
+        logger.debug("Testing 'history' parameter exception handling for v0/old config format")
+        with self.assertRaises(Exception):
+            configparser_v0.get_project_history(
+                configparser_v0.config["projects"][0]["path"]
+            )
+
+        logger.debug("Testing 'history' get for v1/new config format")
+        self.assertEqual(
+            configparser_v1.get_project_history(
+                configparser_v1.config["projects"][0]["path"]
+            ),
+            self.TEST_PROJECT_HISTORY
+        )
+
     def test_get_project_version(self):
         logger.info("Executing unit tests for 'ConfigParser.get_project_version' method")
 
@@ -217,6 +321,42 @@ class ConfigParserTest(unittest.TestCase):
         self.assertEqual(
             configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY),
             "0.2.0-dev.1"
+        )
+
+        logger.debug("Testing file update call")
+        mock_update.assert_called_with(configparser_v0.config_path, 'w')
+        mock_update.assert_called_with(configparser_v1.config_path, 'w')
+
+    @patch('builtins.open', new_callable=mock_open)
+    def test_update_project_history(
+            self,
+            mock_update
+    ):
+        logger.info("Executing unit tests for 'ConfigParser.update_project_history' method")
+
+        configparser_v0 = ConfigParser(
+            config_path=self.TEST_GITFLOW_CONFIG_FILE
+        )
+        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+
+        configparser_v1 = ConfigParser(
+            config_path=self.TEST_GITFLOW_CONFIG_FILE
+        )
+        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+
+        configparser_v1.update_project_history(
+            self.TEST_PROJECT_DIRECTORY,
+            bump_type="major",
+            commit_sha="#######"
+        )
+
+        logger.debug("Testing 'history' parameter update for v1/old config format")
+        self.assertEqual(
+            configparser_v1.get_project_history(self.TEST_PROJECT_DIRECTORY),
+            {
+                "latest_bump_type": "major",
+                "latest_bump_commit_hash": "#######"
+            }
         )
 
         logger.debug("Testing file update call")
