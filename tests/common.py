@@ -1,14 +1,4 @@
-import unittest
-import logging
-
-from src.comet.conventions import ConventionalCommits
-
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-logger = logging.getLogger()
-
-
-class ConventionalCommitsTest(unittest.TestCase):
-
+class TestBaseCommitMessages(object):
     BREAKING_FEAT_MSG = """feat(pcscf,cscf_controller): add p-cscf to cscf controller
 
 This change enables the PCSCF to be controlled by the CSCF controller. It also enables the PCSCF to have an extra interface which it then uses to interact with the Packet Core network. This feature adds the following features
@@ -82,51 +72,79 @@ Test body
     
 Merged-by: Muneeb Ahmad"""
 
-    def test_lint_commit(self):
-        logger.info("Executing unit tests for 'ConventionalCommits.lint_commit' method")
 
-        logger.debug("Testing major feature commit message")
-        self.assertTrue(
-            ConventionalCommits.lint_commit(self.BREAKING_FEAT_MSG)
-        )
+class TestBaseConfig(object):
 
-        logger.debug("Testing minor feature commit message")
-        self.assertTrue(
-            ConventionalCommits.lint_commit(self.FEAT_MSG)
-        )
+    TEST_DEV_VERSION = "0.1.0-dev.2"
+    TEST_STABLE_VERSION = "0.1.0"
+    TEST_PROJECT_DIRECTORY = "test_project"
+    TEST_PROJECT_HISTORY = {
+        "latest_bump_type": "",
+        "latest_bump_commit_hash": ""
+    }
+    TEST_GITFLOW_CONFIG_FILE = ".comet.yml"
+    TEST_PROJECT_VERSION_FILE = "VERSION"
 
-        logger.debug("Testing patch commit message")
-        self.assertTrue(
-            ConventionalCommits.lint_commit(self.FIX_MSG)
-        )
+    TEST_PROJECT_VERSION_REGEX_ZERO_GROUP = ".*"
+    TEST_PROJECT_VERSION_REGEX_ONE_GROUP = "(Version: ).*"
+    TEST_PROJECT_VERSION_REGEX_TWO_GROUPS = "(Version)(: ).*"
 
-        logger.debug("Testing Invalid message 1")
-        self.assertFalse(
-            ConventionalCommits.lint_commit(self.INVALID_MSG_1)
-        )
+    TEST_GITFLOW_CONFIG_V0 = {
+        "strategy": "gitflow",
+        "workspace": "beenum22",
+        "repo": "comet",
+        "stable_branch": "master",
+        "development_branch": "develop",
+        "release_branch_prefix": "release",
+        "projects": [
+            {
+                "path": TEST_PROJECT_DIRECTORY,
+                "stable_version": TEST_STABLE_VERSION,
+                "dev_version": TEST_DEV_VERSION,
+                "version_regex": "",
+                "version_files": [
+                    TEST_PROJECT_VERSION_FILE
+                ]
+            }
+        ]
+    }
 
-        logger.debug("Testing Invalid message 2")
-        self.assertFalse(
-            ConventionalCommits.lint_commit(self.INVALID_MSG_2)
-        )
+    TEST_GITFLOW_CONFIG_V1 = {
+        "strategy": "gitflow",
+        "workspace": "beenum22",
+        "repo": "comet",
+        "stable_branch": "master",
+        "development_branch": "develop",
+        "release_branch_prefix": "release",
+        "projects": [
+            {
+                "path": TEST_PROJECT_DIRECTORY,
+                "version": TEST_DEV_VERSION,
+                "history": TEST_PROJECT_HISTORY,
+                "version_regex": "",
+                "version_files": [
+                    TEST_PROJECT_VERSION_FILE
+                ]
+            }
+        ]
+    }
 
-    def test_ignored_commit(self):
-        logger.info("Executing unit tests for 'ConventionalCommits.ignored_commit' method")
-        logger.debug("Testing Merge commit message")
-        self.assertTrue(
-            ConventionalCommits.ignored_commit(self.MERGE_MSG)
-        )
-
-        logger.debug("Testing chore commit message")
-        self.assertTrue(
-            ConventionalCommits.ignored_commit(self.CHORE_MSG)
-        )
-
-        logger.debug("Testing valid commit message")
-        self.assertFalse(
-            ConventionalCommits.ignored_commit(self.FEAT_MSG)
-        )
-
-
-if __name__ == '__main__':
-    unittest.main()
+    TEST_INVALID_GITFLOW_CONFIG = {
+        "strategy_name": "gitflow",
+        "workspace_name": "beenum22",
+        "repository": "comet",
+        "master_branch": "master",
+        "develop_branch": "develop",
+        "release_branch_name": "release",
+        "projects": [
+            {
+                "name": TEST_PROJECT_DIRECTORY,
+                "stable_version": TEST_STABLE_VERSION,
+                "dev_version": TEST_DEV_VERSION,
+                "version_regex": "",
+                "version_files": [
+                    TEST_PROJECT_VERSION_FILE
+                ]
+            }
+        ]
+    }

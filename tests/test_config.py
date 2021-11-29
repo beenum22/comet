@@ -2,83 +2,14 @@ import unittest
 from unittest.mock import patch, mock_open
 import logging
 
+from .common import TestBaseConfig
 from src.comet.config import ConfigParser
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
 
-class ConfigParserTest(unittest.TestCase):
-
-    TEST_DEV_VERSION = "0.1.0-dev.2"
-    TEST_STABLE_VERSION = "0.1.0"
-    TEST_PROJECT_DIRECTORY = "test_project"
-    TEST_PROJECT_HISTORY = {
-        "latest_bump_type": "",
-        "latest_bump_commit_hash": ""
-    }
-    TEST_GITFLOW_CONFIG_FILE = ".comet.yml"
-    TEST_PROJECT_VERSION_FILE = "VERSION"
-
-    TEST_GITFLOW_CONFIG_V0 = {
-        "strategy": "gitflow",
-        "workspace": "beenum22",
-        "repo": "comet",
-        "stable_branch": "master",
-        "development_branch": "develop",
-        "release_branch_prefix": "release",
-        "projects": [
-            {
-                "path": TEST_PROJECT_DIRECTORY,
-                "stable_version": TEST_STABLE_VERSION,
-                "dev_version": TEST_DEV_VERSION,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
-                ]
-            }
-        ]
-    }
-
-    TEST_GITFLOW_CONFIG_V1 = {
-        "strategy": "gitflow",
-        "workspace": "beenum22",
-        "repo": "comet",
-        "stable_branch": "master",
-        "development_branch": "develop",
-        "release_branch_prefix": "release",
-        "projects": [
-            {
-                "path": TEST_PROJECT_DIRECTORY,
-                "version": TEST_DEV_VERSION,
-                "history": TEST_PROJECT_HISTORY,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
-                ]
-            }
-        ]
-    }
-
-    TEST_INVALID_GITFLOW_CONFIG = {
-        "strategy_name": "gitflow",
-        "workspace_name": "beenum22",
-        "repository": "comet",
-        "master_branch": "master",
-        "develop_branch": "develop",
-        "release_branch_name": "release",
-        "projects": [
-            {
-                "name": TEST_PROJECT_DIRECTORY,
-                "stable_version": TEST_STABLE_VERSION,
-                "dev_version": TEST_DEV_VERSION,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
-                ]
-            }
-        ]
-    }
+class ConfigParserTest(unittest.TestCase, TestBaseConfig):
 
     def test_initialize_config(
             self
@@ -207,28 +138,6 @@ class ConfigParserTest(unittest.TestCase):
             )
             configparser.get_projects()
 
-    def test_get_project_last_bump_type(self):
-        logger.info("Executing unit tests for 'ConfigParser.get_project_last_bump_type' method")
-        configparser_v0 = ConfigParser(
-            config_path=f"test_comet.yml"
-        )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
-
-        configparser_v1 = ConfigParser(
-            config_path=f"test_comet.yml"
-        )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
-
-        logger.debug("Testing 'last_bump_type' exception handling for v0/old config format")
-        with self.assertRaises(Exception):
-            configparser_v0.get_project_last_bump_type(configparser_v0.config["projects"][0]["path"])
-
-        logger.debug("Testing 'last_bump_type' read for v1/new config format")
-        self.assertEqual(
-            configparser_v1.get_project_last_bump_type(configparser_v1.config["projects"][0]["path"]),
-            ""
-        )
-
     def test_get_project_history(self):
         logger.info("Executing unit tests for 'ConfigParser.get_project_history' method")
         configparser_v0 = ConfigParser(
@@ -350,7 +259,7 @@ class ConfigParserTest(unittest.TestCase):
             commit_sha="#######"
         )
 
-        logger.debug("Testing 'history' parameter update for v1/old config format")
+        logger.debug("Testing 'history' parameter update for v0/old config format")
         self.assertEqual(
             configparser_v1.get_project_history(self.TEST_PROJECT_DIRECTORY),
             {
@@ -364,7 +273,7 @@ class ConfigParserTest(unittest.TestCase):
         mock_update.assert_called_with(configparser_v1.config_path, 'w')
 
     @patch('src.comet.config.os')
-    @patch('builtins.open', new_callable=mock_open, read_data=str(TEST_GITFLOW_CONFIG_V1))
+    @patch('builtins.open', new_callable=mock_open, read_data=str(TestBaseConfig.TEST_GITFLOW_CONFIG_V1))
     def test_read_config(
             self,
             mock_read,
