@@ -75,9 +75,24 @@ Merged-by: Muneeb Ahmad"""
 
 class TestBaseConfig(object):
 
+    TEST_GIT_CONFIG = {
+        "username": "dummy",
+        "password": "test",
+        "ssh_key_path": "~/.ssh/id_rsa",
+        "scm_providers": [
+            "github",
+            "bitbucket"
+        ],
+        "connection_types": [
+            "https",
+            "ssh"
+        ]
+    }
+
     TEST_DEV_VERSION = "0.1.0-dev.2"
     TEST_STABLE_VERSION = "0.1.0"
-    TEST_PROJECT_DIRECTORY = "test_project"
+    TEST_PROJECT_DIRECTORY_1 = "test_project_1"
+    TEST_PROJECT_DIRECTORY_2 = "test_project_2"
     TEST_PROJECT_HISTORY = {
         "latest_bump_type": "",
         "latest_bump_commit_hash": ""
@@ -89,62 +104,150 @@ class TestBaseConfig(object):
     TEST_PROJECT_VERSION_REGEX_ONE_GROUP = "(Version: ).*"
     TEST_PROJECT_VERSION_REGEX_TWO_GROUPS = "(Version)(: ).*"
 
-    TEST_GITFLOW_CONFIG_V0 = {
-        "strategy": "gitflow",
-        "workspace": "beenum22",
-        "repo": "comet",
-        "stable_branch": "master",
-        "development_branch": "develop",
-        "release_branch_prefix": "release",
-        "projects": [
-            {
-                "path": TEST_PROJECT_DIRECTORY,
-                "stable_version": TEST_STABLE_VERSION,
-                "dev_version": TEST_DEV_VERSION,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
+    TEST_GITFLOW_CONFIGS = {
+        "mono": {
+            "v0": {
+                "strategy": "gitflow",
+                "workspace": "beenum22",
+                "repo": "comet",
+                "stable_branch": "master",
+                "development_branch": "develop",
+                "release_branch_prefix": "release",
+                "projects": [
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
+                ]
+            },
+            "v1": {
+                "strategy": "gitflow",
+                "workspace": "beenum22",
+                "repo": "comet",
+                "stable_branch": "master",
+                "development_branch": "develop",
+                "release_branch_prefix": "release",
+                "projects": [
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "version": TEST_DEV_VERSION,
+                        "history": TEST_PROJECT_HISTORY,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
+                ]
+            },
+            "invalid": {
+                "strategy_name": "gitflow",
+                "workspace_name": "beenum22",
+                "repository": "comet",
+                "master_branch": "master",
+                "develop_branch": "develop",
+                "release_branch_name": "release",
+                "projects": [
+                    {
+                        "name": TEST_PROJECT_DIRECTORY_1,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": "",
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
                 ]
             }
-        ]
-    }
-
-    TEST_GITFLOW_CONFIG_V1 = {
-        "strategy": "gitflow",
-        "workspace": "beenum22",
-        "repo": "comet",
-        "stable_branch": "master",
-        "development_branch": "develop",
-        "release_branch_prefix": "release",
-        "projects": [
-            {
-                "path": TEST_PROJECT_DIRECTORY,
-                "version": TEST_DEV_VERSION,
-                "history": TEST_PROJECT_HISTORY,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
+        },
+        "multi": {
+            "v0": {
+                "strategy": "gitflow",
+                "workspace": "beenum22",
+                "repo": "comet",
+                "stable_branch": "master",
+                "development_branch": "develop",
+                "release_branch_prefix": "release",
+                "projects": [
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    },
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_2,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
+                ]
+            },
+            "v1": {
+                "strategy": "gitflow",
+                "workspace": "beenum22",
+                "repo": "comet",
+                "stable_branch": "master",
+                "development_branch": "develop",
+                "release_branch_prefix": "release",
+                "projects": [
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "version": TEST_DEV_VERSION,
+                        "history": TEST_PROJECT_HISTORY,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    },
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_2,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
+                ]
+            },
+            "invalid": {
+                "strategy_name": "gitflow",
+                "workspace_name": "beenum22",
+                "repository": "comet",
+                "master_branch": "master",
+                "develop_branch": "develop",
+                "release_branch_name": "release",
+                "projects": [
+                    {
+                        "name": TEST_PROJECT_DIRECTORY_1,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": "",
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    },
+                    {
+                        "path": TEST_PROJECT_DIRECTORY_2,
+                        "stable_version": TEST_STABLE_VERSION,
+                        "dev_version": TEST_DEV_VERSION,
+                        "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                        "version_files": [
+                            TEST_PROJECT_VERSION_FILE
+                        ]
+                    }
                 ]
             }
-        ]
-    }
-
-    TEST_INVALID_GITFLOW_CONFIG = {
-        "strategy_name": "gitflow",
-        "workspace_name": "beenum22",
-        "repository": "comet",
-        "master_branch": "master",
-        "develop_branch": "develop",
-        "release_branch_name": "release",
-        "projects": [
-            {
-                "name": TEST_PROJECT_DIRECTORY,
-                "stable_version": TEST_STABLE_VERSION,
-                "dev_version": TEST_DEV_VERSION,
-                "version_regex": "",
-                "version_files": [
-                    TEST_PROJECT_VERSION_FILE
-                ]
-            }
-        ]
+        }
     }

@@ -25,58 +25,58 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         )
 
         configparser_v0.initialize_config(
-            strategy=self.TEST_GITFLOW_CONFIG_V0["strategy"],
-            workspace=self.TEST_GITFLOW_CONFIG_V0["workspace"],
-            repo=self.TEST_GITFLOW_CONFIG_V0["repo"],
-            stable_branch=self.TEST_GITFLOW_CONFIG_V0["stable_branch"],
-            development_branch=self.TEST_GITFLOW_CONFIG_V0["development_branch"],
-            release_branch_prefix=self.TEST_GITFLOW_CONFIG_V0["release_branch_prefix"],
-            projects=self.TEST_GITFLOW_CONFIG_V0["projects"]
+            strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["strategy"],
+            workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
+            repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
+            stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
+            development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
+            release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
+            projects=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["projects"]
         )
 
         configparser_v1.initialize_config(
-            strategy=self.TEST_GITFLOW_CONFIG_V1["strategy"],
-            workspace=self.TEST_GITFLOW_CONFIG_V1["workspace"],
-            repo=self.TEST_GITFLOW_CONFIG_V1["repo"],
-            stable_branch=self.TEST_GITFLOW_CONFIG_V1["stable_branch"],
-            development_branch=self.TEST_GITFLOW_CONFIG_V1["development_branch"],
-            release_branch_prefix=self.TEST_GITFLOW_CONFIG_V1["release_branch_prefix"],
-            projects=self.TEST_GITFLOW_CONFIG_V1["projects"]
+            strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"],
+            workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["workspace"],
+            repo=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["repo"],
+            stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["stable_branch"],
+            development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["development_branch"],
+            release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["release_branch_prefix"],
+            projects=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"]
         )
 
         logger.debug("Testing initialized test config with v0/old format")
         self.assertEqual(
             configparser_v0.config,
-            self.TEST_GITFLOW_CONFIG_V0
+            self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         )
 
         logger.debug("Testing initialized test config with v1/new format")
         self.assertEqual(
             configparser_v1.config,
-            self.TEST_GITFLOW_CONFIG_V1
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         )
 
         logger.info("Testing initialized test config for unsupported values exception handling")
         with self.assertRaises(Exception) as err:
             configparser_v0.initialize_config(
                 strategy="tbd",
-                workspace=self.TEST_GITFLOW_CONFIG_V0["workspace"],
-                repo=self.TEST_GITFLOW_CONFIG_V0["repo"],
-                stable_branch=self.TEST_GITFLOW_CONFIG_V0["stable_branch"],
-                development_branch=self.TEST_GITFLOW_CONFIG_V0["development_branch"],
-                release_branch_prefix=self.TEST_GITFLOW_CONFIG_V0["release_branch_prefix"],
-                projects=self.TEST_GITFLOW_CONFIG_V0["projects"]
+                workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
+                repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
+                stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
+                development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
+                release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
+                projects=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["projects"]
             )
 
         logger.debug("Testing initialized test config for invalid schema exception handling")
         with self.assertRaises(Exception) as err:
             configparser_v0.initialize_config(
-                strategy=self.TEST_GITFLOW_CONFIG_V0["strategy"],
-                workspace=self.TEST_GITFLOW_CONFIG_V0["workspace"],
-                repo=self.TEST_GITFLOW_CONFIG_V0["repo"],
-                stable_branch=self.TEST_GITFLOW_CONFIG_V0["stable_branch"],
-                development_branch=self.TEST_GITFLOW_CONFIG_V0["development_branch"],
-                release_branch_prefix=self.TEST_GITFLOW_CONFIG_V0["release_branch_prefix"],
+                strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["strategy"],
+                workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
+                repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
+                stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
+                development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
+                release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
                 projects=[{
                     "project_path": "test_project",
                     "project_version": "1.1.1",
@@ -89,12 +89,12 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         logger.debug("Testing 'stable_version' deprecated parameter for v0/old config format")
         self.assertTrue(
@@ -112,23 +112,23 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         logger.debug("Testing 'projects' fetch for v0/old config format")
         self.assertEqual(
             configparser_v0.get_projects(),
-            [self.TEST_PROJECT_DIRECTORY]
+            [self.TEST_PROJECT_DIRECTORY_1]
         )
 
         logger.debug("Testing 'projects' fetch for v1/new config format")
         self.assertEqual(
             configparser_v1.get_projects(),
-            [self.TEST_PROJECT_DIRECTORY]
+            [self.TEST_PROJECT_DIRECTORY_1]
         )
 
         logger.debug("Testing projects fetch exception handling")
@@ -143,12 +143,12 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=f"test_comet.yml"
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         logger.debug("Testing 'history' parameter exception handling for v0/old config format")
         with self.assertRaises(Exception):
@@ -170,26 +170,26 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         logger.debug("Testing 'stable' reference version read for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY, "stable"),
+            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "stable"),
             self.TEST_STABLE_VERSION
         )
         logger.debug("Testing 'dev' reference version read for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY, "dev"),
+            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "dev"),
             self.TEST_DEV_VERSION
         )
         logger.debug("Testing version read for v1/new config format")
         self.assertEqual(
-            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY),
+            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY_1),
             self.TEST_DEV_VERSION
         )
 
@@ -203,32 +203,32 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
-        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY, "0.2.0", "stable")
-        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY, "0.2.0-dev.1", "dev")
-        configparser_v1.update_project_version(self.TEST_PROJECT_DIRECTORY, "0.2.0-dev.1")
+        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0", "stable")
+        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0-dev.1", "dev")
+        configparser_v1.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0-dev.1")
 
         logger.debug("Testing 'stable' reference version update for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY, "stable"),
+            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "stable"),
             "0.2.0"
         )
 
         logger.debug("Testing 'dev' reference version update for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY, "dev"),
+            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "dev"),
             "0.2.0-dev.1"
         )
 
         logger.debug("Testing 'dev' reference version update for v1/new config format")
         self.assertEqual(
-            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY),
+            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY_1),
             "0.2.0-dev.1"
         )
 
@@ -246,22 +246,22 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
 
         configparser_v1 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         configparser_v1.update_project_history(
-            self.TEST_PROJECT_DIRECTORY,
+            self.TEST_PROJECT_DIRECTORY_1,
             bump_type="major",
             commit_sha="#######"
         )
 
         logger.debug("Testing 'history' parameter update for v0/old config format")
         self.assertEqual(
-            configparser_v1.get_project_history(self.TEST_PROJECT_DIRECTORY),
+            configparser_v1.get_project_history(self.TEST_PROJECT_DIRECTORY_1),
             {
                 "latest_bump_type": "major",
                 "latest_bump_commit_hash": "#######"
@@ -273,7 +273,7 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         mock_update.assert_called_with(configparser_v1.config_path, 'w')
 
     @patch('src.comet.config.os')
-    @patch('builtins.open', new_callable=mock_open, read_data=str(TestBaseConfig.TEST_GITFLOW_CONFIG_V1))
+    @patch('builtins.open', new_callable=mock_open, read_data=str(TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]))
     def test_read_config(
             self,
             mock_read,
@@ -293,7 +293,7 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         logger.debug("Testing read data from the file for v1/new config format")
         self.assertEqual(
             configparser_v1.config,
-            self.TEST_GITFLOW_CONFIG_V1
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         )
 
         logger.debug("Testing incorrect configuration file path exception handling")
@@ -316,13 +316,13 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v0 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIG_V0
+        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         configparser_v0.write_config()
 
         configparser_v1 = ConfigParser(
             config_path=self.TEST_GITFLOW_CONFIG_FILE
         )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIG_V1
+        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         configparser_v1.write_config()
 
         logger.debug("Testing file update call for v0/old config format")
@@ -336,7 +336,7 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
             configparser = ConfigParser(
                 config_path="test_read_file"
             )
-            configparser.config = self.TEST_GITFLOW_CONFIG_V1
+            configparser.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
             mock_update.side_effect = Exception()
             configparser.write_config()
 

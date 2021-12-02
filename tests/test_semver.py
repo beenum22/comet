@@ -12,19 +12,21 @@ logger = logging.getLogger()
 class SemVerTest(unittest.TestCase, TestBaseConfig):
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_get_version_enum_value(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.get_version_enum_value' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -42,19 +44,21 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         self.assertEqual(semver.get_version_enum_value("awesome"), semver.NO_CHANGE)
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_get_version(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.get_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -67,19 +71,21 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         self.assertEqual(semver.get_version(), self.TEST_DEV_VERSION)
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_get_final_version(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.get_final_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -92,20 +98,22 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         self.assertEqual(semver.get_final_version(), self.TEST_STABLE_VERSION)
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_prepare_version(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.prepare_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         logger.debug("Testing versioning object preparation for v0/old Comet configuration format")
         SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -116,7 +124,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
 
         logger.debug("Testing versioning object preparation for v1/new Comet configuration format")
         SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -130,7 +138,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         )
         with self.assertRaises(Exception):
             SemVer(
-                project_path=self.TEST_PROJECT_DIRECTORY,
+                project_path=self.TEST_PROJECT_DIRECTORY_1,
                 version_files=[
                     self.TEST_PROJECT_VERSION_FILE
                 ],
@@ -140,19 +148,21 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             )
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_compare_bumps(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.compare_bumps' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -180,19 +190,21 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             semver.compare_bumps(1, 0)
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     def test_bump_version(
             self,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.bump_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -291,17 +303,19 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             )
 
     @patch("src.comet.semver.ConfigParser")
-    @patch('src.comet.semver.os')
+    @patch('src.comet.semver.os.path.isdir')
+    @patch('src.comet.semver.os.path.exists')
     @patch('builtins.open', new_callable=mock_open, read_data=f"Version: {str(TestBaseConfig.TEST_DEV_VERSION)}")
     def test_update_version_files(
             self,
             mock_update,
-            mock_os,
+            mock_os_exists,
+            mock_os_isdir,
             mock_configparser
     ):
         logger.info("Executing unit tests for 'SemVer.update_version_files' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIG_V0
+        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         logger.debug(
@@ -309,7 +323,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "configuration format"
         )
         semver_v1_with_one_group_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -331,7 +345,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "Testing version files update without version regex pattern for v1/new Comet configuration format"
         )
         semver_v1_without_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -354,7 +368,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "configuration format"
         )
         semver_v1_with_zero_group_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY,
+            project_path=self.TEST_PROJECT_DIRECTORY_1,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -373,7 +387,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         logger.debug("Testing version files update exception handling")
         with self.assertRaises(Exception):
             semver_v1_with_one_group_regex = SemVer(
-                project_path=self.TEST_PROJECT_DIRECTORY,
+                project_path=self.TEST_PROJECT_DIRECTORY_1,
                 version_files=[
                     self.TEST_PROJECT_VERSION_FILE
                 ],
