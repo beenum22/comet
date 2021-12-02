@@ -355,7 +355,7 @@ class GitFlow(object):
         :return: None
         """
         if branches:
-            assert len(self.project_config.config["projects"]) > 0, \
+            assert len(self.project_config.config["projects"]) == 1, \
                 f"Release flow is currently supported for repositories with one project only"
             self.release_candidate()
         else:
@@ -396,8 +396,8 @@ class GitFlow(object):
 
     @CometUtilities.unstable_function_warning
     def release_to_stable(self, release_branch: str) -> None:
-        """
-        Releases a new version for the Comet-managed project(s).
+        """Releases a new version for the Comet-managed project(s).
+
         Checks out to the stable branch, merges the development branch into the stable branch, updates all the relevant
         version files to this new stable version and checks out back to the development branch.
 
@@ -541,7 +541,7 @@ class GitFlow(object):
             if "history" in project and project["history"]["latest_bump_commit_hash"]:
                 commits = self.scm.find_new_commits(
                     self.source_branch,
-                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
                     project["path"]
                 )
             else:
@@ -585,7 +585,7 @@ class GitFlow(object):
                 )
                 if not self._has_deprecated_versioning_format():
                     new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-                    self.project_config.update_version_history(
+                    self.project_config.update_project_history(
                         project["path"],
                         SemVer.SUPPORTED_RELEASE_TYPES[next_bump],
                         new_version_hex
@@ -636,7 +636,7 @@ class GitFlow(object):
             if "history" in project and project["history"]["latest_bump_commit_hash"]:
                 commits = self.scm.find_new_commits(
                     self.source_branch,
-                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
                     project["path"]
                 )
             else:
@@ -789,7 +789,7 @@ class GitFlow(object):
         for project in self.project_config.config["projects"]:
             if not self._has_deprecated_versioning_format():
                 past_bump = self.projects_semver_objects[project["path"]].get_version_enum_value(
-                    self.project_config.get_project_last_bump_type(project["path"])
+                    self.project_config.get_project_history(project["path"])["latest_bump_type"]
                 )
             else:
                 past_bump = SemVer.NO_CHANGE
@@ -801,7 +801,7 @@ class GitFlow(object):
             if "history" in project and project["history"]["latest_bump_commit_hash"]:
                 commits = self.scm.find_new_commits(
                     self.source_branch,
-                    self.project_config.get_project_last_bump_commit_hash(project["path"]),
+                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
                     project["path"]
                 )
             else:
@@ -848,7 +848,7 @@ class GitFlow(object):
                 )
                 if not self._has_deprecated_versioning_format():
                     new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-                    self.project_config.update_version_history(
+                    self.project_config.update_project_history(
                         project["path"],
                         SemVer.SUPPORTED_RELEASE_TYPES[past_bump],
                         new_version_hex

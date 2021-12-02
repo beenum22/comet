@@ -237,6 +237,7 @@ class ConfigParser(object):
         self._print_deprecated_parameters_warnings("dev_version", "stable_version")
         self._validate_supported_values()
 
+    # TODO: Refine this method or remove if not needed
     # TODO: Add repository directory path if Comet is executed from a different directory
     @CometUtilities.unstable_function_warning
     def _sanitize_config(self) -> None:
@@ -414,12 +415,20 @@ class ConfigParser(object):
                         if len(self.config["projects"]) == 0:
                             subprojects_info["path"] = "."
                             subprojects_info["version"] = "0.0.0"
+                            subprojects_info["history"] = {
+                                "latest_bump_type": "",
+                                "latest_bump_commit_hash": ""
+                            }
                             subprojects_info["version_regex"] = ""
                             subprojects_info["version_files"] = []
                             self.config["projects"].append(subprojects_info)
                         break
                     if subprojects == "yes":
                         subprojects_info["path"] = input("Enter the path for sub-project: ")
+                        subprojects_info["history"] = {
+                            "latest_bump_type": "",
+                            "latest_bump_commit_hash": ""
+                        }
                         subprojects_info["version"] = input("Enter the version for sub-project[0.0.0]: ") or "0.0.0"
                         subprojects_info["version_regex"] = input("Enter the version regex for sub-project[]: ") or ""
                         subprojects_info["version_files"] = []
@@ -466,7 +475,6 @@ class ConfigParser(object):
             raises an exception if it fails to write to the YAML-based Comet configuration file
         """
         try:
-            assert os.path.exists(self.config_path), f"Unable to find the YAML configuration file [{self.config_path}]"
             assert self.config, f"Please load the YAML configuration file first [{self.config_path}]"
             projects = []
             for idx, project_dict in enumerate(self.config["projects"]):
@@ -476,7 +484,7 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Failed to get project names from the YAML configuration file")
 
-    @CometUtilities.unstable_function_warning
+    @CometUtilities.unsupported_function_error
     def get_project_last_bump_type(self, project_path: str) -> [str, None]:
         """
         Fetches the last version bump type for the specified Comet-managed project in :param:`project_path`.
@@ -493,7 +501,7 @@ class ConfigParser(object):
             raise Exception(f"Failed to get the last project [{project_path}] version bump type history from "
                             f"the Comet configuration file")
 
-    @CometUtilities.unstable_function_warning
+    @CometUtilities.unsupported_function_error
     def get_project_last_bump_commit_hash(self, project_path: str) -> [str, None]:
         """
         Fetches the last version bump commit hash for the specified Comet-managed project in
@@ -511,6 +519,24 @@ class ConfigParser(object):
             raise Exception(f"Failed to get the last project [{project_path}] version bump commit "
                             f"history from the Comet configuration file")
 
+    @CometUtilities.unstable_function_warning
+    def get_project_history(self, project_path: str) -> [dict, None]:
+        """
+        Fetches the version history for the specified Comet-managed project in :param:`project_path`.
+
+        :param project_path: Project in the Comet configuration file
+        :return: Comet-managed project latest version history specified in 'history' parameter
+        :raises Exception: If an invalid project path is specified
+        """
+        try:
+            self._validate_project_path(project_path)
+            return self._lookup_project_parameter_value(project_path, "history")
+        except Exception as err:
+            logger.debug(err)
+            raise Exception(f"Failed to get the last project [{project_path}] version bump commit "
+                            f"history from the Comet configuration file")
+
+    # TODO: Remove this method
     @CometUtilities.unsupported_function_error
     def get_project_release_hash(self, project_path: str) -> [str, None]:
         """
@@ -548,7 +574,7 @@ class ConfigParser(object):
             return self._lookup_project_parameter_value(
                 project_path, f"{version_type}_version" if version_type else "version"
             )
-        except (Exception) as err:
+        except Exception as err:
             logger.debug(err)
             raise Exception(f"Failed to get the project [{project_path}] version from the Comet configuration file")
 
@@ -582,7 +608,11 @@ class ConfigParser(object):
                             f"file")
 
     @CometUtilities.unstable_function_warning
-    def update_version_history(self, project_path: str, bump_type: str, commit_sha) -> None:
+    def update_project_history(
+            self,
+            project_path: str,
+            bump_type: str = "",
+            commit_sha: str = "") -> None:
         """
         Updates last version bump history for the specified Comet-managed project :param:`project_path` in the
         Comet configuration file with the new version bump type and commit hash specified in :param:`bump_type`
@@ -609,32 +639,6 @@ class ConfigParser(object):
         except AssertionError as err:
             logger.debug(err)
             raise Exception(f"Failed to update the project [{project_path}] version bump history in the Comet "
-                            f"configuration file")
-
-    @CometUtilities.unstable_function_warning
-    def update_release_hash(self, project_path: str, release_hash: str) -> None:
-        """
-        Updates release commmit hash for the specified Comet-managed project :param:`project_path` in the
-        Comet configuration file with the new value specified in :param:`release_hash`.
-
-        :param project_path: Project in the Comet configuration file
-        :param release_hash: Release commit hash to set in the Comet configuration file
-        :return: None
-        :raises Exception:
-            raises an exception if an invalid version type is specified or specified project doesn't exist
-        """
-        try:
-            # TODO: Remove redundant config validation line
-            # self._validate_config()
-            self._validate_project_path(project_path)
-            self._change_project_parameter_value(
-                project_path,
-                "release_commit_sha",
-                release_hash
-            )
-        except AssertionError as err:
-            logger.debug(err)
-            raise Exception(f"Failed to update the project [{project_path}] release commit hash in the Comet "
                             f"configuration file")
 
     def read_config(self, sanitize=True):

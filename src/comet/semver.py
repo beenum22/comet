@@ -151,20 +151,21 @@ class SemVer(object):
         self.version_files = [os.path.normpath(f"{self.project_path}/{file}") for file in self.version_files]
         self.project_version_file = os.path.normpath(f"{self.project_version_file}")
 
-    def _validate_default_version_file(self) -> bool:
+    def _validate_default_version_file(self) -> None:
         """
         Validates the existence of main/default project version file and the reference version found in it.
 
-        :return: Returns `True` if the validation is successful and `False` otherwise
+        :return: `None` if the validation is successful and throws an exception otherwise
         """
         try:
             assert os.path.exists(self.project_version_file), \
                 f"Default Version file [{self.project_version_file}] not found!"
             Version.parse(self._read_default_version_file(version_type=self.reference_version_type))
-            return True
         except (ValueError, AssertionError) as err:
             logger.debug(err)
-            return False
+            raise Exception(
+                f"Failed to validate the default Comet version file"
+            )
 
     def _validate_release_type(self, release: int) -> bool:
         """
@@ -347,29 +348,27 @@ class SemVer(object):
         """
         return str(self.version_object.finalize_version())
 
-    # TODO: Add comet config initialization
     def prepare_version(self) -> None:
         """
         Prepares the current project version for bumps/releases by making sure it follows the Semantic Versioning
         Specification.
 
         :return: None
-        :raises ValueError, AssertionError:
+        :raises ValueError, Exception:
             raises an exception if it fails to prepare the current reference project version for new releases/bumps
         """
         try:
             if self.reference_version_type:
                 self._validate_reference_version_type()
-            if not self._validate_default_version_file():
-                # assert self._initialize_default_version_file(), "Default version file initialization failed!"
-                pass
-            self.version_object = Version.parse(self._read_default_version_file(version_type=self.reference_version_type))
-        except (ValueError, AssertionError) as err:
-            logger.error(
+            self._validate_default_version_file()
+            self.version_object = Version.parse(
+                self._read_default_version_file(version_type=self.reference_version_type)
+            )
+        except (ValueError, Exception) as err:
+            logger.debug(err)
+            raise Exception(
                 f"Failed to prepare the version using default version file [{self.project_version_file}]"
             )
-            logger.debug(err)
-            raise
 
     def compare_bumps(self, current_bump: int, next_bump: int) -> int:
         """
@@ -501,7 +500,7 @@ class SemVer(object):
         :param build_metadata: Optional build metadata to append to the version
         :param static_build_metadata: Optional flag to have static build metadata without any incremental section
         :return: None
-        :raises AssertionError:
+        :raises Exception:
             raises an exception if it fails to upgrade the version
         """
         try:
@@ -528,11 +527,8 @@ class SemVer(object):
             if pre_release and release in [self.MAJOR, self.MINOR, self.PATCH]:
                 self.version_object = self.version_object.bump_prerelease(pre_release)
         except AssertionError as err:
-            logger.error(
-                f"Failed to bump the version [{self.get_version()}]"
-            )
             logger.debug(err)
-            raise
+            raise Exception(f"Failed to bump the version [{self.get_version()}]")
 
     # TODO: Raise an error if it fails to update the version files
     def update_version_files(self, old_version: str, new_version: str) -> None:
@@ -543,7 +539,7 @@ class SemVer(object):
         :param old_version: Old/current version string to look for in the files
         :param new_version: New version string update in the files
         :return: None
-        :raises OSError:
+        :raises Exception:
             raises an exception if it fails to update the version files
         """
         try:
@@ -557,6 +553,10 @@ class SemVer(object):
                         if regex.groups > 2:
                             logger.warning(f"Only first captured group in the regular expressions will be used while "
                                            f"substituting the version string in files")
+                        elif regex.groups == 0:
+                            logger.warning(f"No capturing group is provided in the regular expressions. Adding an "
+                                           f"empty capturing group to the expression")
+                            self.version_regex = f"(^){self.version_regex}"
                         data = re.sub(f"{self.version_regex}", f"\g<1>{new_version}", data)
                     else:
                         data = re.sub(f"{re.escape(old_version)}", f"{new_version}", data)
