@@ -459,6 +459,7 @@ class Scm(object):
         )
         return sha
 
+    # TODO: Replace branch with reference
     def find_new_commits(self, source_branch: str, reference_branch: str, path: str = ".") -> list:
         """
         Finds new commits for a specified file path in the source branch in comparison to the reference/target branch.
@@ -477,6 +478,7 @@ class Scm(object):
         commits = [commit.hexsha for commit in self.repo_object.iter_commits(commit_range, paths=path, reverse=True)]
         return commits
 
+    # TODO: Check warnings for this method
     def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False) -> None:
         """
         Commits changes for a specified file path/s with an optional flag to push changes to the upstream or remote
@@ -625,7 +627,7 @@ class Scm(object):
             # self.repo_object.index.merge_tree(destination_branch, base=merge_base)
             # self.repo_object.index.commit(f"chore: merge '{source_branch}' into '{destination_branch}')",
             #                               parent_commits=(source_branch.commit, destination_branch.commit))
-            self.repo_object.git.checkout(str(source_branch).lstrip(f"{self.get_remote_alias()}/"))
+            self.repo_object.git.checkout(self._strip_remote_alias(source_branch))
         except GitError as err:
             logger.debug(err)
             raise
