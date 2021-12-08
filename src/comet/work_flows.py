@@ -344,6 +344,195 @@ class GitFlow(object):
             raise
 
     @CometUtilities.unstable_function_warning
+    def bump_project_version(
+            self,
+            project: str,
+            commits: list,
+            pre_release_str: [str, None] = None,
+            pre_release_only: bool = False,
+            check_history: bool = True
+    ) -> int:
+        """Bump the project version.
+
+        Execute version bumps for the project based on the type of commits provided.
+
+        :param project: Target project path
+        :param commits: List of commit hashes to parse
+        :param pre_release_str: Optional pre_release identifier to set. Default: None
+        :param check_history:
+            Optional flag to bump versions dynamically with considering version history. Default: True
+        :return: Latest version bump type
+        """
+        past_bump = SemVer.NO_CHANGE
+        if not self._has_deprecated_versioning_format():
+            past_bump = self.projects_semver_objects[project].get_version_enum_value(
+                self.project_config.get_project_history(project)["latest_bump_type"]
+            )
+        current_bump = SemVer.NO_CHANGE
+        next_bump = SemVer.NO_CHANGE
+
+        for commit in commits:
+            bump_type = ConventionalCommits.get_bump_type(
+                self.scm.get_commit_message(commit)
+            )
+            logger.debug(
+                f"Current Version: {self.projects_semver_objects[project].get_version()}, "
+                f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
+                f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
+                f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
+            )
+            if bump_type == SemVer.NO_CHANGE:
+                continue
+            if pre_release_only:
+                next_bump = SemVer.PRE_RELEASE
+                self.projects_semver_objects[project].bump_version(
+                    release=next_bump, pre_release=pre_release_str
+                )
+            elif check_history:
+                next_bump = bump_type
+                current_bump = self.projects_semver_objects[project].compare_bumps(past_bump, next_bump)
+                self.projects_semver_objects[project].bump_version(
+                    release=current_bump, pre_release=pre_release_str)
+                if current_bump == SemVer.PRE_RELEASE and past_bump > next_bump:
+                    continue
+                else:
+                    past_bump = next_bump
+            else:
+                next_bump = bump_type
+                self.projects_semver_objects[project].bump_version(
+                    release=next_bump, pre_release=pre_release_str)
+        return next_bump
+
+    @CometUtilities.unstable_function_warning
+    def lookup_commits(
+            self,
+            project: str,
+            source_ref: str,
+            parent_ref: str,
+            filter_commits: bool = True,
+            check_history: bool = False
+    ) -> list:
+        """Lookup/get new commits on source Git reference.
+
+        Looks up and gets new commits on the source Git reference in comparison to the reference Git
+        reference. It optionally supports filtering out ignored/useless commits.
+
+        :param project: Target project path
+        :param source_ref: Source Git reference
+        :param parent_ref: Parent Git reference to compare the source Git reference with
+        :param filter_commits: Filter out or remove ignored commits
+        :param check_history:
+            Override parent Git reference with last version commit hash if the version history is present
+        :return: List of the commit hashes
+        """
+        history_commit_hash = None
+        if check_history:
+            if not self._has_deprecated_versioning_format():
+                logger.debug(f"Looking up version commit hash in version history during commits lookup for "
+                             f"[{project}] target project")
+                history_commit_hash = \
+                    self.project_config.get_project_history(project)["latest_bump_commit_hash"]
+            else:
+                logger.debug(f"Skipping version history check during commits lookup for [{project}] target "
+                             f"project as it still using the deprecated versioning configuration format/schema")
+        if history_commit_hash:
+            logger.debug(f"Overriding provided parent reference [{parent_ref}] with the last version commit "
+                         f"hash/reference [{history_commit_hash}] in the commits lookup for [{project}] target "
+                         f"project")
+            commits = self.scm.find_new_commits(
+                source_ref,
+                history_commit_hash,
+                project
+            )
+        else:
+            commits = self.scm.find_new_commits(
+                source_ref,
+                parent_ref,
+                project
+            )
+        if filter_commits:
+            commits = [
+                commit for commit in commits if not ConventionalCommits.ignored_commit(
+                    self.scm.get_commit_message(commit)
+                )
+            ]
+        return commits
+
+    @CometUtilities.unstable_function_warning
+    def update_version_history(
+            self,
+            project: str,
+            version_commit_hash: str,
+            version_bump_type: str
+    ) -> bool:
+        """Update project version history in Comet configuration file.
+
+        Updates project version history in Comet configuration file if the v1/new versioning configuration format
+        or schema is used. In the new configuration format/schema, `history` and `version` parameters are provided
+        instead of `dev_version` and `stable_version` parameters.
+
+        :param project: Target project path
+        :param version_commit_hash: Latest version commit hash to set in Comet version history (optional)
+        :param version_bump_type: Latest version bump type to set in Comet version history (optional)
+        :return: `True` if the version history is updated and `False` otherwise
+        """
+        if not self._has_deprecated_versioning_format():
+            logger.debug(f"Updating version history in Comet configuration file for the target [{project}] project")
+            self.project_config.update_project_history(
+                project,
+                version_bump_type,
+                version_commit_hash
+            )
+            return True
+        else:
+            logger.debug(f"Skipping version history update in Comet configuration file for the "
+                         f"[{project}] project due to v0/old configuration format/schema or missing "
+                         f"version bump type and version commit hash")
+            return False
+
+    @CometUtilities.unsupported_function_error
+    def bump_dynamic_versions(self, project: str, commits: list, pre_release: str) -> int:
+        """Bump the project version version dynamically.
+
+        Execute dynamic version bumps for the project based on the type of commits provided. Dynamic here means
+        that the version will be bumped according to the priority/type of previous version bump. This method also
+        provides a :ivar:`pre_release` parameter to set the pre_release string for the version. ( Default: dev)
+
+        :param project: Target project path
+        :param commits: List of commit hashes to parse
+        :param pre_release: Pre_release identifier to set (Required for dynamic versioning)
+        :return: Latest version bump type
+        """
+        past_bump = SemVer.NO_CHANGE
+        current_bump = SemVer.NO_CHANGE
+        next_bump = SemVer.NO_CHANGE
+        if not self._has_deprecated_versioning_format():
+            past_bump = self.projects_semver_objects[project].get_version_enum_value(
+                self.project_config.get_project_history(project)["latest_bump_type"]
+            )
+
+        for commit in commits:
+            next_bump = ConventionalCommits.get_bump_type(
+                self.scm.get_commit_message(commit)
+            )
+            logger.debug(
+                f"Current Version: {self.projects_semver_objects[project].get_version()}, "
+                f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
+                f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
+                f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
+            )
+            if next_bump == SemVer.NO_CHANGE:
+                continue
+            current_bump = self.projects_semver_objects[project].compare_bumps(past_bump, next_bump)
+            self.projects_semver_objects[project].bump_version(
+                release=current_bump, pre_release=pre_release)
+            if current_bump == SemVer.PRE_RELEASE and past_bump > next_bump:
+                continue
+            else:
+                past_bump = next_bump
+        return past_bump
+
+    @CometUtilities.unstable_function_warning
     def release_flow(self, branches: bool = False) -> None:
         """
         Executes the Release flow according to the specified parameters.
@@ -357,9 +546,9 @@ class GitFlow(object):
         if branches:
             assert len(self.project_config.config["projects"]) == 1, \
                 f"Release flow is currently supported for repositories with one project only"
-            self.release_candidate()
+            self.release_candidate_flow()
         else:
-            self.release_to_stable(self.source_branch)
+            self.release_to_stable_flow(self.source_branch)
 
     def sync_flow(self) -> None:
         """
@@ -395,14 +584,60 @@ class GitFlow(object):
             self.default_branch_flow()
 
     @CometUtilities.unstable_function_warning
-    def release_to_stable(self, release_branch: str) -> None:
+    def release_project_version(self, project: str, release_branch: str) -> bool:
+        """Releases/finalizes the project version
+
+        Releases/finalizes the project version, and upgrades the Comet configuration file and project specific
+        version files. The version is finalized for a project only if the new changes/commits are found on
+        :ivar:`release_branch` in reference to the stable branch.
+
+        :param project: Target project path.
+        :param release_branch: Git branch to release to the stable branch.
+        :return: `True` if the project is released and `False` otherwise.
+        """
+        current_dev_version = self.projects_semver_objects[project].get_version()
+        release_version = self.projects_semver_objects[project].get_final_version()
+        commits = self.scm.find_new_commits(
+            release_branch,
+            self.stable_branch,
+            project
+        )
+        if commits:
+            logger.info(f"Release version '{release_version}' for the project [{project}]")
+            self.projects_semver_objects[project].update_version_files(
+                current_dev_version,
+                release_version
+            )
+            self.project_config.update_project_version(
+                project,
+                release_version,
+                version_type=self._set_deprecated_version_type("stable")
+            )
+            if self._has_deprecated_versioning_format():
+                self.project_config.update_project_version(
+                    project,
+                    release_version,
+                    version_type=self._set_deprecated_version_type("dev")
+                )
+            self.update_version_history(
+                project,
+                None,
+                None
+            )
+            return True
+        else:
+            logger.debug(f"Skipping release for sub-project [{project}]")
+            return False
+
+    @CometUtilities.unstable_function_warning
+    def release_to_stable_flow(self, release_branch: str) -> list:
         """Releases a new version for the Comet-managed project(s).
 
         Checks out to the stable branch, merges the development branch into the stable branch, updates all the relevant
         version files to this new stable version and checks out back to the development branch.
 
         :param release_branch: Git branch to release to the stable branch.
-        :return: None
+        :return: List of changed/released projects
         """
         allowed_branches = [
             self.development_branch,
@@ -413,33 +648,8 @@ class GitFlow(object):
         self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            current_dev_version = self.projects_semver_objects[project['path']].get_version()
-            release_version = self.projects_semver_objects[project['path']].get_final_version()
-            commits = self.scm.find_new_commits(
-                release_branch,
-                self.stable_branch,
-                project["path"]
-            )
-            if commits:
-                logger.info(f"Release version '{release_version}' for the project [{project['path']}]")
-                self.projects_semver_objects[project["path"]].update_version_files(
-                    current_dev_version,
-                    release_version
-                )
-                self.project_config.update_project_version(
-                    project["path"],
-                    release_version,
-                    version_type=self._set_deprecated_version_type("stable")
-                )
-                if self._has_deprecated_versioning_format():
-                    self.project_config.update_project_version(
-                        project["path"],
-                        release_version,
-                        version_type=self._set_deprecated_version_type("dev")
-                    )
-                changed_projects.append(project['path'])
-            else:
-                logger.debug(f"Skipping release for sub-project [{project['path']}]")
+            if self.release_project_version(project["path"], release_branch):
+                changed_projects.append(project["path"])
 
         if len(changed_projects) > 0:
             self.scm.commit_changes(
@@ -449,7 +659,7 @@ class GitFlow(object):
                 push=self.push_changes
             )
             self.scm.merge_branches(
-                source_branch=self.development_branch,
+                source_branch=self.source_branch,
                 destination_branch=self.stable_branch
             )
 
@@ -463,49 +673,62 @@ class GitFlow(object):
                 branch=self.stable_branch,
                 tags=True
             )
+        return changed_projects
 
     @CometUtilities.unstable_function_warning
-    def release_candidate(self) -> None:
+    def create_project_rc(self, project: str) -> bool:
+        """Create a release candidate for the project.
+
+        Creates a Release Candidate branch for the project version, and upgrades the Comet configuration file and
+        project specific version files accordingly. The Release Candidate branch only if it does not exist.
+
+        :param project: Target project path.
+        :return: `True` if the project is released and `False` otherwise.
+        """
+        release_candidate = self.projects_semver_objects[project].get_final_version()
+        logger.info(f"Creating a Release candidate [{release_candidate}]")
+        release_candidate_branch = f"{self.project_config.config['release_branch_prefix']}/{release_candidate}"
+        if self.scm.has_local_branch(release_candidate_branch) or self.scm.has_remote_branch(release_candidate_branch):
+            logger.debug(f"Skipping Release Candidate as the branch [{release_candidate_branch}] already exists on "
+                         f"the local or remote repository")
+            return False
+        self.scm.add_branch(
+            release_candidate_branch,
+            checkout=True
+        )
+        self.projects_semver_objects[project].bump_version(
+            release=SemVer.PRE_RELEASE, pre_release="rc")
+        current_version = self.project_config.get_project_version(
+            project,
+            version_type=self._set_deprecated_version_type("dev")
+        )
+        new_version = self.projects_semver_objects[project].get_version()
+        self.projects_semver_objects[project].update_version_files(
+            current_version,
+            new_version
+        )
+        self.project_config.update_project_version(
+            project,
+            new_version,
+            version_type=self._set_deprecated_version_type("dev")
+        )
+        return True
+
+    @CometUtilities.unstable_function_warning
+    def release_candidate_flow(self) -> list:
         """
         Creates the release candidate(s) for the Comet-managed project(s).
         Creates a release candidate branch according to the development version for a project and checks out to this
         branch. After the checkout, it updates versions to include `rc` identifier specifying a release candidate.
 
-        :return: None
+        :return: List of projects for which the release candidate branches are created
         """
-        version_type = None
-        if "version" not in self.project_config.config["projects"][0]:
-            logger.warning(f"Deprecated version parameters [dev_version, stable_version] are set in the "
-                           f"Comet configuration")
-            version_type = "dev"
-        self.prepare_versioning(reference_version_type=version_type)
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
 
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            release_candidate = self.projects_semver_objects[project['path']].get_final_version()
-            logger.info(f"Creating a Release candidate [{release_candidate}]")
-            self.scm.add_branch(
-                f"{self.project_config.config['release_branch_prefix']}/{release_candidate}",
-                checkout=True
-            )
-            self.projects_semver_objects[project["path"]].bump_version(
-                release=SemVer.PRE_RELEASE, pre_release="rc")
-            current_version = self.project_config.get_project_version(
-                project["path"],
-                version_type="dev"
-            )
-            new_version = self.projects_semver_objects[project['path']].get_version()
-            self.projects_semver_objects[project["path"]].update_version_files(
-                current_version,
-                new_version
-            )
-            self.project_config.update_project_version(
-                project["path"],
-                new_version,
-                version_type="dev"
-            )
-
-            changed_projects.append(project['path'])
+            if self.create_project_rc(project["path"]):
+                changed_projects.append(project['path'])
 
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
@@ -515,16 +738,83 @@ class GitFlow(object):
                 *changed_projects,
                 push=self.push_changes
             )
+        return changed_projects
+
+    # TODO: Add Assertion check for source branch
+    # TODO: Return False if commits are found but no version is upgraded.
+    @CometUtilities.unstable_function_warning
+    def upgrade_stable_branch_project_version(self, project: str) -> bool:
+        """Upgrade the project version in stable branch.
+
+        Upgrades the project version for the stable Git branch in the Comet configuration file and project
+        specific version files.
+
+        :param project: Target project path.
+        """
+        commits = self.lookup_commits(
+            project,
+            self.source_branch,
+            self.development_branch,
+            filter_commits=True,
+            check_history=True
+        )
+
+        if not commits:
+            logger.info(f"No new commits are found on the stable branch for the target [{project}] project")
+            return False
+
+        # last_bump_type = self.bump_static_versions(project, commits)
+        last_bump_type = self.bump_project_version(
+            project,
+            commits,
+            pre_release_str=None,
+            pre_release_only=False,
+            check_history=False
+        )
+
+        current_version = self.project_config.get_project_version(
+            project,
+            version_type=self._set_deprecated_version_type("stable")
+        )
+        new_version = self.projects_semver_objects[project].get_version()
+
+        if current_version != new_version:
+            logger.debug(f"Updating version files for the target [{project}] project")
+            self.projects_semver_objects[project].update_version_files(
+                current_version,
+                new_version
+            )
+            logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
+            self.project_config.update_project_version(
+                project,
+                new_version,
+                version_type=self._set_deprecated_version_type("stable")
+            )
+            if not self.update_version_history(
+                    project,
+                    self.scm.get_commit_hexsha(commits[-1], short=True),
+                    SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            ):
+                self.project_config.update_project_version(
+                    project,
+                    new_version,
+                    version_type=self._set_deprecated_version_type("dev")
+                )
+        return True
 
     @CometUtilities.unstable_function_warning
     def stable_branch_flow(self):
-        """
-        Executes the stable branch flow according to the designed Git flow process.
+        """Execute Stable branch versioning flow for the Comet managed projects.
 
-        .. important::
-            Underdevelopment!
+        Executes the stable branch versioning flow according to the designed/implemented Git flow. Stable branch flow
+        is only executed for the branch specified in `stable_branch` parameter in the Comet configuration file. It
+        uses development version as a reference. If new commits are found on the stable branch
+        in comparison to the development branch, it will look for keywords/identifiers specified in the
+        `ConventionalCommits` class for version upgrades and only bump the stable version.
 
-        :return: None
+        This branch flow must is recommended to be executed for patches/fixes on the stable branch.
+
+        :return: List of changed projects
         """
         logger.info("Executing Stable branch GitFlow")
         logger.warning(
@@ -537,65 +827,7 @@ class GitFlow(object):
         changed_projects = []
         # TODO: Initialize versioning variables
         for project in self.project_config.config["projects"]:
-
-            if "history" in project and project["history"]["latest_bump_commit_hash"]:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
-                    project["path"]
-                )
-            else:
-                commits = self.scm.find_new_commits(
-                    self.stable_branch,
-                    self.development_branch,
-                    project["path"]
-                )
-            commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(
-                    self.scm.get_commit_message(commit)
-                )
-            ]
-
-            for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(
-                    self.scm.get_commit_message(commit)
-                )
-                logger.debug(
-                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
-                    f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
-                )
-                if next_bump == SemVer.NO_CHANGE:
-                    continue
-                self.projects_semver_objects[project["path"]].bump_version(
-                    release=next_bump, pre_release=None)
-            current_version = self.project_config.get_project_version(
-                project["path"],
-                version_type=self._set_deprecated_version_type("stable")
-            )
-            new_version = self.projects_semver_objects[project['path']].get_version()
-            if current_version != new_version:
-                self.projects_semver_objects[project["path"]].update_version_files(
-                    current_version,
-                    new_version
-                )
-                self.project_config.update_project_version(
-                    project["path"],
-                    new_version,
-                    version_type=self._set_deprecated_version_type("stable")
-                )
-                if not self._has_deprecated_versioning_format():
-                    new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-                    self.project_config.update_project_history(
-                        project["path"],
-                        SemVer.SUPPORTED_RELEASE_TYPES[next_bump],
-                        new_version_hex
-                    )
-                else:
-                    self.project_config.update_project_version(
-                        project["path"],
-                        new_version,
-                        version_type=self._set_deprecated_version_type("dev")
-                    )
+            if self.upgrade_stable_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
@@ -614,8 +846,65 @@ class GitFlow(object):
                 branch=self.stable_branch,
                 tags=True
             )
+        return changed_projects
 
-    def default_branch_flow(self) -> None:
+    @CometUtilities.unstable_function_warning
+    def upgrade_default_branch_project_version(self, project: str) -> bool:
+        """Upgrade the project version in development branch.
+
+        Upgrades the project version for the default/any Git branch in the Comet configuration file and project
+        specific version files.
+
+        :param project: Target project path.
+        """
+        commits = self.lookup_commits(
+            project,
+            self.source_branch,
+            self.development_branch,
+            filter_commits=True,
+            check_history=True
+        )
+        if not commits:
+            logger.info(f"No new commits are found on the default branch for the target [{project}] project")
+            return False
+        current_version = self.projects_semver_objects[project].get_version()
+        version_hex_change = False
+        current_version_hex = None
+        new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
+        if self.projects_semver_objects[project].version_object.build:
+            current_version_hex = \
+                self.projects_semver_objects[project].version_object.build.split(".")[0]
+        if not current_version_hex or (current_version_hex and current_version_hex != new_version_hex):
+            version_hex_change = True
+
+        if version_hex_change:
+            logger.debug(f"New commits found for the target project [{project}] "
+                         f"in reference to development branch [{self.development_branch}]")
+            self.projects_semver_objects[project].bump_version(
+                release=SemVer.BUILD,
+                pre_release="dev",
+                build_metadata=f"{new_version_hex}",
+                static_build_metadata=True
+            )
+            new_version = self.projects_semver_objects[project].get_version()
+            logger.debug(f"Updating version files with a new version [{new_version}] for the "
+                         f"target [{project}] project")
+            self.projects_semver_objects[project].update_version_files(
+                current_version,
+                new_version
+            )
+            logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
+            self.project_config.update_project_version(
+                project,
+                new_version,
+                version_type=self._set_deprecated_version_type("dev")
+            )
+            return True
+        else:
+            logger.debug(f"Skipping version upgrade for the target [{project}] project")
+            return False
+
+    def default_branch_flow(self) -> list:
         """
         Executes the default branch flow according to the designed/implemented Git flow. Default branch flow is
         executed for any branch that doesn't have a dedicated branch flow. If new commits are found in comparison
@@ -623,154 +912,78 @@ class GitFlow(object):
         commit hash as metadata. After the upgrade, it will commit the changes with an optional :ivar:`push_changes`
         flag that will push changes to the remote if it is set.
 
-        :return: None
+        :return: List of changed/upgraded projects
         """
         logger.info("Executing default branch GitFlow")
         self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            current_version = self.projects_semver_objects[project['path']].get_version()
-            logger.debug(
-                f"Current Version for sub-project [{project['path']}]: {current_version}"
-            )
-            if "history" in project and project["history"]["latest_bump_commit_hash"]:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
-                    project["path"]
-                )
-            else:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    self.development_branch,
-                    project["path"]
-                )
-            commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(
-                    self.scm.get_commit_message(commit)
-                )
-            ]
-            if commits:
-                version_hex_change = False
-                current_version_hex = None
-                new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-                if self.projects_semver_objects[project['path']].version_object.build:
-                    current_version_hex = \
-                        self.projects_semver_objects[project['path']].version_object.build.split(".")[0]
-                if not current_version_hex or (current_version_hex and current_version_hex != new_version_hex):
-                    version_hex_change = True
-
-                if version_hex_change:
-                    logger.debug(f"New commits found for project [{project['path']}] "
-                                 f"in reference to development branch [{self.development_branch}]")
-                    self.projects_semver_objects[project["path"]].bump_version(
-                        release=SemVer.BUILD,
-                        pre_release="dev",
-                        build_metadata=f"{new_version_hex}",
-                        static_build_metadata=True
-                    )
-            if self.projects_semver_objects[project['path']].get_version() != current_version:
-                new_version = self.projects_semver_objects[project['path']].get_version()
-                logger.debug(f"New Version for sub-project [{project['path']}]: {new_version}")
-                self.projects_semver_objects[project["path"]].update_version_files(
-                    current_version,
-                    new_version
-                )
-                self.project_config.update_project_version(
-                    project["path"],
-                    new_version,
-                    version_type=self._set_deprecated_version_type("dev")
-                )
+            if self.upgrade_default_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
-            else:
-                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
         if len(changed_projects) > 0:
-            logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
+            logger.info(f"Version upgrade/s found for the target [{', '.join(changed_projects)}] projects")
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
                 *changed_projects,
                 push=self.push_changes
             )
-        else:
-            logger.info(f"No version upgrade/s found for sub-projects")
+        return changed_projects
 
-    # TODO: Initialize RC branch with rc.1 whenever it is created
+    # TODO: Add Assertion check for source branch
     @CometUtilities.unstable_function_warning
-    def release_branch_flow(self):
-        """
-        Executes the release branch flow according to the designed/implemented Git flow. Release branch flow is
-        executed for branches with a prefix as specified in `release_branch_prefix` parameter in the Comet
-        configuration file. It uses development version as a reference. If new commits are found on the release branch
-        in comparison to the development branch, it will look for keywords/identifiers specified in the
-        `ConventionalCommits` class for version upgrades and only bump the pre-release version.
+    def upgrade_dev_branch_project_version(self, project: str) -> bool:
+        """Upgrade the project version in development branch.
 
-        :return: None
-        """
-        logger.info("Executing Release branch GitFlow")
-        version_type = None
-        if "version" not in self.project_config.config["projects"][0]:
-            version_type = "dev"
-        self.prepare_versioning(reference_version_type=version_type)
-        changed_projects = []
-        for project in self.project_config.config["projects"]:
-            if "release_commit_sha" in project and project["release_commit_sha"]:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    project["release_commit_sha"],
-                    project["path"]
-                )
-            else:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    self.development_branch,
-                    project["path"]
-                )
-            commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(
-                    self.scm.get_commit_message(commit)
-                )
-            ]
+        Upgrades the project version for the development Git branch in the Comet configuration file and project
+        specific version files.
 
-            for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(
-                    self.scm.get_commit_message(commit)
-                )
-                logger.debug(
-                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}"
-                )
-                if next_bump == SemVer.NO_CHANGE:
-                    continue
-                self.projects_semver_objects[project["path"]].bump_version(
-                    release=SemVer.PRE_RELEASE, pre_release="rc")
-            current_version = self.project_config.get_project_version(
-                project["path"],
-                version_type="dev"
+        :param project: Target project path.
+        """
+        commits = self.lookup_commits(
+            project,
+            self.development_branch,
+            self.stable_branch,
+            filter_commits=True,
+            check_history=True
+        )
+        if not commits:
+            logger.info(f"No new commits are found on the development branch for the target [{project}] project")
+            return False
+        current_version = self.project_config.get_project_version(
+            project,
+            version_type=self._set_deprecated_version_type("dev")
+        )
+        last_bump_type = self.bump_project_version(
+            project,
+            commits,
+            pre_release_str="dev",
+            pre_release_only=False,
+            check_history=True
+        )
+        new_version = self.projects_semver_objects[project].get_version()
+
+        if current_version != new_version:
+            logger.debug(f"Updating version files for the target [{project}] project")
+            self.projects_semver_objects[project].update_version_files(
+                current_version,
+                new_version
             )
-            new_version = self.projects_semver_objects[project['path']].get_version()
-            if current_version != new_version:
-                self.projects_semver_objects[project["path"]].update_version_files(
-                    current_version,
-                    new_version
-                )
-                self.project_config.update_project_version(
-                    project["path"],
-                    new_version,
-                    version_type=version_type
-                )
-                changed_projects.append(project['path'])
-            else:
-                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
-        if len(changed_projects) > 0:
-            logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
-            self.scm.commit_changes(
-                ConventionalCommits.DEFAULT_VERSION_COMMIT,
-                self.project_config_path,
-                *changed_projects,
-                push=self.push_changes
+            logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
+            self.project_config.update_project_version(
+                project,
+                new_version,
+                version_type=self._set_deprecated_version_type("dev")
             )
+            self.update_version_history(
+                project,
+                self.scm.get_commit_hexsha(commits[-1], short=True),
+                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            )
+            return True
         else:
-            logger.info(f"No version upgrade/s found for sub-projects")
+            logger.debug(f"Skipping version upgrade for the target [{project}] project")
+            return False
 
     # TODO: Verify loop for projects as it still says Upgrades found even when there are no files.
     def development_branch_flow(self):
@@ -787,75 +1000,92 @@ class GitFlow(object):
         self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("stable"))
         changed_projects = []
         for project in self.project_config.config["projects"]:
-            if not self._has_deprecated_versioning_format():
-                past_bump = self.projects_semver_objects[project["path"]].get_version_enum_value(
-                    self.project_config.get_project_history(project["path"])["latest_bump_type"]
-                )
-            else:
-                past_bump = SemVer.NO_CHANGE
-            current_bump = SemVer.NO_CHANGE
-            current_version = self.project_config.get_project_version(
-                project["path"],
+            if self.upgrade_dev_branch_project_version(project["path"]):
+                changed_projects.append(project['path'])
+        if len(changed_projects) > 0:
+            logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] projects")
+            self.scm.commit_changes(
+                ConventionalCommits.DEFAULT_VERSION_COMMIT,
+                self.project_config_path,
+                *changed_projects,
+                push=self.push_changes
+            )
+        return changed_projects
+
+    # TODO: Add Assertion check for source branch
+    @CometUtilities.unstable_function_warning
+    def upgrade_release_branch_project_version(self, project: str) -> bool:
+        """Upgrade the project version in release branches.
+
+        Upgrades the project version for the release Git branch/es in the Comet configuration file and project
+        specific version files.
+
+        :param project: Target project path.
+        """
+        commits = self.lookup_commits(
+            project,
+            self.source_branch,
+            self.development_branch,
+            filter_commits=True,
+            check_history=True
+        )
+        if not commits:
+            logger.info(f"No new commits are found on the development branch for the target [{project}] project")
+            return False
+        current_version = self.project_config.get_project_version(
+            project,
+            version_type=self._set_deprecated_version_type("dev")
+        )
+        # last_bump_type = self.bump_dynamic_versions(project, commits, pre_release="dev")
+        last_bump_type = self.bump_project_version(
+            project,
+            commits,
+            pre_release_str="rc",
+            pre_release_only=True,
+            check_history=False
+        )
+        new_version = self.projects_semver_objects[project].get_version()
+
+        if current_version != new_version:
+            logger.debug(f"Updating version files for the target [{project}] project")
+            self.projects_semver_objects[project].update_version_files(
+                current_version,
+                new_version
+            )
+            logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
+            self.project_config.update_project_version(
+                project,
+                new_version,
                 version_type=self._set_deprecated_version_type("dev")
             )
-            if "history" in project and project["history"]["latest_bump_commit_hash"]:
-                commits = self.scm.find_new_commits(
-                    self.source_branch,
-                    self.project_config.get_project_history(project["path"])["latest_bump_commit_hash"],
-                    project["path"]
-                )
-            else:
-                commits = self.scm.find_new_commits(
-                    self.development_branch,
-                    self.stable_branch,
-                    project["path"]
-                )
-            commits = [
-                commit for commit in commits if not ConventionalCommits.ignored_commit(
-                    self.scm.get_commit_message(commit)
-                )
-            ]
+            self.update_version_history(
+                project,
+                self.scm.get_commit_hexsha(commits[-1], short=True),
+                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            )
+            return True
+        else:
+            logger.debug(f"Skipping version upgrade for the target [{project}] project")
+            return False
 
-            for commit in commits:
-                next_bump = ConventionalCommits.get_bump_type(
-                    self.scm.get_commit_message(commit)
-                )
-                logger.debug(
-                    f"Current Version: {self.projects_semver_objects[project['path']].get_version()}, "
-                    f"Past Bump: {SemVer.SUPPORTED_RELEASE_TYPES[past_bump]}, "
-                    f"Current Bump: {SemVer.SUPPORTED_RELEASE_TYPES[current_bump]}, "
-                    f"Next Bump: {SemVer.SUPPORTED_RELEASE_TYPES[next_bump]}"
-                )
-                if next_bump == SemVer.NO_CHANGE:
-                    continue
-                current_bump = self.projects_semver_objects[project["path"]].compare_bumps(past_bump, next_bump)
-                self.projects_semver_objects[project["path"]].bump_version(
-                    release=current_bump, pre_release="dev")
-                if current_bump == SemVer.PRE_RELEASE and past_bump > next_bump:
-                    continue
-                else:
-                    past_bump = next_bump
-            new_version = self.projects_semver_objects[project['path']].get_version()
-            if current_version != new_version:
-                self.projects_semver_objects[project["path"]].update_version_files(
-                    current_version,
-                    new_version
-                )
-                self.project_config.update_project_version(
-                    project["path"],
-                    new_version,
-                    version_type=self._set_deprecated_version_type("dev")
-                )
-                if not self._has_deprecated_versioning_format():
-                    new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-                    self.project_config.update_project_history(
-                        project["path"],
-                        SemVer.SUPPORTED_RELEASE_TYPES[past_bump],
-                        new_version_hex
-                    )
+    # TODO: Initialize RC branch with rc.1 whenever it is created
+    @CometUtilities.unstable_function_warning
+    def release_branch_flow(self):
+        """
+        Executes the release branch flow according to the designed/implemented Git flow. Release branch flow is
+        executed for branches with a prefix as specified in `release_branch_prefix` parameter in the Comet
+        configuration file. It uses development version as a reference. If new commits are found on the release branch
+        in comparison to the development branch, it will look for keywords/identifiers specified in the
+        `ConventionalCommits` class for version upgrades and only bump the pre-release version.
+
+        :return: None
+        """
+        logger.info("Executing Release branch GitFlow")
+        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
+        changed_projects = []
+        for project in self.project_config.config["projects"]:
+            if self.upgrade_release_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
-            else:
-                logger.debug(f"Skipping version upgrade for sub-project [{project['path']}]")
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
             self.scm.commit_changes(
@@ -864,5 +1094,4 @@ class GitFlow(object):
                 *changed_projects,
                 push=self.push_changes
             )
-        else:
-            logger.info(f"No version upgrade/s found for sub-projects")
+        return changed_projects
