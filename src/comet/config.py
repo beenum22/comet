@@ -34,12 +34,13 @@ class ConfigParser(object):
             config_path=args.project_config
         )
 
-    :cvar SUPPORTED_WORKFLOWS: Supported development work flows for Comet-managed projects
+    :cvar SUPPORTED_STRATEGIES: Supported development work flows for Comet-managed projects
     :cvar SUPPORTED_CONFIG_SCHEMA: Supported configuration file schema for Comet-managed projects
     """
 
-    SUPPORTED_WORKFLOWS: list = [
-        "gitflow"
+    SUPPORTED_STRATEGIES: list = [
+        "gitflow",
+        "custom"
     ]
 
     DEPRECATED_PARAMETERS: list = [
@@ -107,7 +108,7 @@ class ConfigParser(object):
                         "history": {
                             "type": "object",
                             "properties": {
-                                "latest_bump_type": {
+                                "next_release_type": {
                                     "type": [
                                         "string",
                                         "null"
@@ -195,9 +196,9 @@ class ConfigParser(object):
         :raises AssertionError:
             raises an exception if unsupported configuration file parameter values are provided
         """
-        assert self.config["strategy"] in self.SUPPORTED_WORKFLOWS, \
+        assert self.config["strategy"] in self.SUPPORTED_STRATEGIES, \
             f"Unsupported work flow strategy [{self.config['strategy']}] is requested. " \
-            f"Supported work flows are [{','.join(self.SUPPORTED_WORKFLOWS)}]"
+            f"Supported work flows are [{','.join(self.SUPPORTED_STRATEGIES)}]"
 
     @CometUtilities.deprecated_function_warning
     def _validate_version_type(self, version_type: str) -> None:
@@ -416,7 +417,7 @@ class ConfigParser(object):
                             subprojects_info["path"] = "."
                             subprojects_info["version"] = "0.0.0"
                             subprojects_info["history"] = {
-                                "latest_bump_type": "",
+                                "next_release_type": "",
                                 "latest_bump_commit_hash": ""
                             }
                             subprojects_info["version_regex"] = ""
@@ -426,7 +427,7 @@ class ConfigParser(object):
                     if subprojects == "yes":
                         subprojects_info["path"] = input("Enter the path for sub-project: ")
                         subprojects_info["history"] = {
-                            "latest_bump_type": "",
+                            "next_release_type": "",
                             "latest_bump_commit_hash": ""
                         }
                         subprojects_info["version"] = input("Enter the version for sub-project[0.0.0]: ") or "0.0.0"
@@ -495,7 +496,7 @@ class ConfigParser(object):
         """
         try:
             self._validate_project_path(project_path)
-            return self._lookup_project_parameter_value(project_path, "history")["latest_bump_type"]
+            return self._lookup_project_parameter_value(project_path, "history")["next_release_type"]
         except Exception as err:
             logger.debug(err)
             raise Exception(f"Failed to get the last project [{project_path}] version bump type history from "
@@ -628,7 +629,7 @@ class ConfigParser(object):
         try:
             self._validate_project_path(project_path)
             history = {
-                "latest_bump_type": bump_type,
+                "next_release_type": bump_type,
                 "latest_bump_commit_hash": commit_sha
             }
             self._change_project_parameter_value(
