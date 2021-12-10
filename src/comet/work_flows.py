@@ -211,6 +211,30 @@ class GitFlow(object):
             return version_type
         return None
 
+    @CometUtilities.deprecation_facilitation_warning
+    def _reset_pre_release_for_deprecated_versioning_format(self, project: str) -> bool:
+        """Reset Pre-release version increment to facilitate deprecated versioning.
+
+        Resets the Pre-release version increment to the initial value of '1' if the deprecated versioning
+        format is in use. This is required because Pre-release only version bumps require version history
+        to avoid duplicate/incorrect version bumps. By resetting the versioning increment, correct version
+        is generated everytime a Pre-release only version bump is requested of the deprecated versioning
+        format (v0 config format/schema)
+
+        :param project: Target project path
+        :return: `True` if the Pre-release version increment is reseted or `False if it is skipped.
+        """
+        if self._has_deprecated_versioning_format():
+            logger.warning(
+                f"Pre-release only version bump is requested for the deprecated project versioning logic that uses "
+                f"'dev_version' and 'stable_version' parameters. Pre-release only version bumps require 'history "
+                f"parameter in Comet configuration. Resetting pre-release version part to handle deprecated project "
+                f"versioning (x.y.z-rc.1)"
+            )
+            self.projects_semver_objects[project].reset_version_pre_release()
+            return True
+        return False
+
     def _prepare_branches(self) -> None:
         """
         Prepare the Git branches required as a pre-requisite for the GitFlow by generating the reference branch
@@ -350,7 +374,8 @@ class GitFlow(object):
             commits: list,
             pre_release_str: [str, None] = None,
             pre_release_only: bool = False,
-            check_history: bool = True
+            build_only: bool = False,
+            check_history: bool = True,
     ) -> int:
         """Bump the project version.
 
@@ -359,6 +384,8 @@ class GitFlow(object):
         :param project: Target project path
         :param commits: List of commit hashes to parse
         :param pre_release_str: Optional pre_release identifier to set. Default: None
+        :param pre_release_only: Optional flag to only bump the pre-release version part. Default: False
+        :param build_only: Optional flag to only bump the build version part. Default: False
         :param check_history:
             Optional flag to bump versions dynamically with considering version history. Default: True
         :return: Latest version bump type
@@ -366,10 +393,23 @@ class GitFlow(object):
         past_bump = SemVer.NO_CHANGE
         if not self._has_deprecated_versioning_format():
             past_bump = self.projects_semver_objects[project].get_version_enum_value(
-                self.project_config.get_project_history(project)["latest_bump_type"]
+                self.project_config.get_project_history(project)["next_release_type"]
             )
         current_bump = SemVer.NO_CHANGE
         next_bump = SemVer.NO_CHANGE
+
+        if pre_release_only:
+            self._reset_pre_release_for_deprecated_versioning_format(project)
+
+        if build_only:
+            new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
+            self.projects_semver_objects[project].bump_version(
+                release=SemVer.BUILD,
+                pre_release=pre_release_str,
+                build_metadata=f"{new_version_hex}",
+                static_build_metadata=True
+            )
+            return past_bump
 
         for commit in commits:
             bump_type = ConventionalCommits.get_bump_type(
@@ -401,7 +441,8 @@ class GitFlow(object):
                 next_bump = bump_type
                 self.projects_semver_objects[project].bump_version(
                     release=next_bump, pre_release=pre_release_str)
-        return next_bump
+                past_bump = next_bump
+        return past_bump
 
     @CometUtilities.unstable_function_warning
     def lookup_commits(
@@ -508,7 +549,7 @@ class GitFlow(object):
         next_bump = SemVer.NO_CHANGE
         if not self._has_deprecated_versioning_format():
             past_bump = self.projects_semver_objects[project].get_version_enum_value(
-                self.project_config.get_project_history(project)["latest_bump_type"]
+                self.project_config.get_project_history(project)["next_release_type"]
             )
 
         for commit in commits:
@@ -622,7 +663,7 @@ class GitFlow(object):
             self.update_version_history(
                 project,
                 None,
-                None
+                SemVer.SUPPORTED_RELEASE_TYPES[SemVer.NO_CHANGE]
             )
             return True
         else:
@@ -763,7 +804,6 @@ class GitFlow(object):
             logger.info(f"No new commits are found on the stable branch for the target [{project}] project")
             return False
 
-        # last_bump_type = self.bump_static_versions(project, commits)
         last_bump_type = self.bump_project_version(
             project,
             commits,
@@ -868,25 +908,19 @@ class GitFlow(object):
             logger.info(f"No new commits are found on the default branch for the target [{project}] project")
             return False
         current_version = self.projects_semver_objects[project].get_version()
-        version_hex_change = False
-        current_version_hex = None
-        new_version_hex = self.scm.get_commit_hexsha(commits[-1], short=True)
-        if self.projects_semver_objects[project].version_object.build:
-            current_version_hex = \
-                self.projects_semver_objects[project].version_object.build.split(".")[0]
-        if not current_version_hex or (current_version_hex and current_version_hex != new_version_hex):
-            version_hex_change = True
+        last_bump_type = self.bump_project_version(
+            project,
+            commits,
+            pre_release_str="dev",
+            pre_release_only=False,
+            build_only=True,
+            check_history=True
+        )
+        new_version = self.projects_semver_objects[project].get_version()
 
-        if version_hex_change:
+        if current_version != new_version:
             logger.debug(f"New commits found for the target project [{project}] "
                          f"in reference to development branch [{self.development_branch}]")
-            self.projects_semver_objects[project].bump_version(
-                release=SemVer.BUILD,
-                pre_release="dev",
-                build_metadata=f"{new_version_hex}",
-                static_build_metadata=True
-            )
-            new_version = self.projects_semver_objects[project].get_version()
             logger.debug(f"Updating version files with a new version [{new_version}] for the "
                          f"target [{project}] project")
             self.projects_semver_objects[project].update_version_files(
@@ -898,6 +932,11 @@ class GitFlow(object):
                 project,
                 new_version,
                 version_type=self._set_deprecated_version_type("dev")
+            )
+            self.update_version_history(
+                project,
+                self.scm.get_commit_hexsha(commits[-1], short=True),
+                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
             )
             return True
         else:
@@ -1036,7 +1075,6 @@ class GitFlow(object):
             project,
             version_type=self._set_deprecated_version_type("dev")
         )
-        # last_bump_type = self.bump_dynamic_versions(project, commits, pre_release="dev")
         last_bump_type = self.bump_project_version(
             project,
             commits,
