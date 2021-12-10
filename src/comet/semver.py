@@ -505,6 +505,7 @@ class SemVer(object):
         """
         try:
             assert self._validate_release_type(release), "Release type validation failed!"
+            # TODO: What if pre_release is None and release is self.PRE_RELEASE
             if pre_release or release == self.PRE_RELEASE:
                 assert self._validate_pre_release_type(pre_release), \
                     f"Invalid Pre-release type [{pre_release}] is provided!"
@@ -529,6 +530,22 @@ class SemVer(object):
         except AssertionError as err:
             logger.debug(err)
             raise Exception(f"Failed to bump the version [{self.get_version()}]")
+
+    def reset_version_pre_release(self) -> bool:
+        """Reset Pre-release version part increment.
+
+        Resets Pre-release version part increment to the initial value of '1' if the Pre-release version
+        part exits.
+
+        :return:
+            `True` if the Pre-release is successfully reseted or `False` if it is skipped due to absence of
+            a Pre-release version part.
+        """
+        if self.version_object.prerelease:
+            pre_release_str = self.version_object.prerelease.split('.')[0]
+            self.version_object = self.version_object.replace(prerelease=f"{pre_release_str}.1")
+            return True
+        return False
 
     # TODO: Raise an error if it fails to update the version files
     def update_version_files(self, old_version: str, new_version: str) -> None:
