@@ -9,6 +9,7 @@ from colorama import Fore, Style
 import coloredlogs
 
 from .work_flows import GitFlow
+from .work_flows import WorkflowRunner
 from .config import ConfigParser
 
 __author__ = 'Muneeb Ahmad'
@@ -184,7 +185,8 @@ def main() -> None:
                 "branch-flow",
                 "release-candidate",
                 "release",
-                "sync"
+                "sync",
+                "experiment"
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
@@ -312,6 +314,18 @@ def main() -> None:
             gitflow.release_flow(branches=False)
         elif args.run == "sync" or args.workflow == "sync":
             gitflow.sync_flow()
+        elif args.run == "experiment":
+            workflow = WorkflowRunner(
+                scm_provider=args.scm_provider,
+                connection_type=args.connection_type,
+                username=args.username,
+                password=args.password,
+                ssh_private_key_path=args.ssh_private_key_path,
+                project_local_path=args.repo_local_path,
+                project_config_path=args.project_config,
+                push_changes=args.push
+            )
+            workflow.branch_flow()
     except Exception as err:
         if not debug_mode:
             comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")

@@ -72,6 +72,14 @@ Test body
     
 Merged-by: Muneeb Ahmad"""
 
+    TEST_DUMMY_COMMITS = {
+        "breaking_hash": BREAKING_FEAT_MSG,
+        "feat_hash": FEAT_MSG,
+        "fix_hash": FIX_MSG,
+        "merge_hash": MERGE_MSG,
+        "chore_hash": CHORE_MSG
+    }
+
 
 class TestBaseConfig(object):
 
@@ -91,10 +99,11 @@ class TestBaseConfig(object):
 
     TEST_DEV_VERSION = "0.1.0-dev.2"
     TEST_STABLE_VERSION = "0.1.0"
+    TEST_REPO_DIRECTORY = "test_repo"
     TEST_PROJECT_DIRECTORY_1 = "test_project_1"
     TEST_PROJECT_DIRECTORY_2 = "test_project_2"
     TEST_PROJECT_HISTORY = {
-        "latest_bump_type": "",
+        "next_release_type": "",
         "latest_bump_commit_hash": ""
     }
     TEST_GITFLOW_CONFIG_FILE = ".comet.yml"
@@ -115,7 +124,7 @@ class TestBaseConfig(object):
                 "release_branch_prefix": "release",
                 "projects": [
                     {
-                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "path": TEST_REPO_DIRECTORY,
                         "stable_version": TEST_STABLE_VERSION,
                         "dev_version": TEST_DEV_VERSION,
                         "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
@@ -134,7 +143,7 @@ class TestBaseConfig(object):
                 "release_branch_prefix": "release",
                 "projects": [
                     {
-                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "path": TEST_REPO_DIRECTORY,
                         "version": TEST_DEV_VERSION,
                         "history": TEST_PROJECT_HISTORY,
                         "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
@@ -153,7 +162,7 @@ class TestBaseConfig(object):
                 "release_branch_name": "release",
                 "projects": [
                     {
-                        "name": TEST_PROJECT_DIRECTORY_1,
+                        "name": TEST_REPO_DIRECTORY,
                         "stable_version": TEST_STABLE_VERSION,
                         "dev_version": TEST_DEV_VERSION,
                         "version_regex": "",
@@ -174,7 +183,7 @@ class TestBaseConfig(object):
                 "release_branch_prefix": "release",
                 "projects": [
                     {
-                        "path": TEST_PROJECT_DIRECTORY_1,
+                        "path": TEST_REPO_DIRECTORY,
                         "stable_version": TEST_STABLE_VERSION,
                         "dev_version": TEST_DEV_VERSION,
                         "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
@@ -212,8 +221,8 @@ class TestBaseConfig(object):
                     },
                     {
                         "path": TEST_PROJECT_DIRECTORY_2,
-                        "stable_version": TEST_STABLE_VERSION,
-                        "dev_version": TEST_DEV_VERSION,
+                        "version": TEST_DEV_VERSION,
+                        "history": TEST_PROJECT_HISTORY,
                         "version_regex": TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
                         "version_files": [
                             TEST_PROJECT_VERSION_FILE
@@ -230,7 +239,7 @@ class TestBaseConfig(object):
                 "release_branch_name": "release",
                 "projects": [
                     {
-                        "name": TEST_PROJECT_DIRECTORY_1,
+                        "name": TEST_REPO_DIRECTORY,
                         "stable_version": TEST_STABLE_VERSION,
                         "dev_version": TEST_DEV_VERSION,
                         "version_regex": "",

@@ -122,13 +122,13 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         logger.debug("Testing 'projects' fetch for v0/old config format")
         self.assertEqual(
             configparser_v0.get_projects(),
-            [self.TEST_PROJECT_DIRECTORY_1]
+            [self.TEST_REPO_DIRECTORY]
         )
 
         logger.debug("Testing 'projects' fetch for v1/new config format")
         self.assertEqual(
             configparser_v1.get_projects(),
-            [self.TEST_PROJECT_DIRECTORY_1]
+            [self.TEST_REPO_DIRECTORY]
         )
 
         logger.debug("Testing projects fetch exception handling")
@@ -179,17 +179,17 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
 
         logger.debug("Testing 'stable' reference version read for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "stable"),
+            configparser_v0.get_project_version(self.TEST_REPO_DIRECTORY, "stable"),
             self.TEST_STABLE_VERSION
         )
         logger.debug("Testing 'dev' reference version read for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "dev"),
+            configparser_v0.get_project_version(self.TEST_REPO_DIRECTORY, "dev"),
             self.TEST_DEV_VERSION
         )
         logger.debug("Testing version read for v1/new config format")
         self.assertEqual(
-            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY_1),
+            configparser_v1.get_project_version(self.TEST_REPO_DIRECTORY),
             self.TEST_DEV_VERSION
         )
 
@@ -210,25 +210,25 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         )
         configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
-        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0", "stable")
-        configparser_v0.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0-dev.1", "dev")
-        configparser_v1.update_project_version(self.TEST_PROJECT_DIRECTORY_1, "0.2.0-dev.1")
+        configparser_v0.update_project_version(self.TEST_REPO_DIRECTORY, "0.2.0", "stable")
+        configparser_v0.update_project_version(self.TEST_REPO_DIRECTORY, "0.2.0-dev.1", "dev")
+        configparser_v1.update_project_version(self.TEST_REPO_DIRECTORY, "0.2.0-dev.1")
 
         logger.debug("Testing 'stable' reference version update for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "stable"),
+            configparser_v0.get_project_version(self.TEST_REPO_DIRECTORY, "stable"),
             "0.2.0"
         )
 
         logger.debug("Testing 'dev' reference version update for v0/old config format")
         self.assertEqual(
-            configparser_v0.get_project_version(self.TEST_PROJECT_DIRECTORY_1, "dev"),
+            configparser_v0.get_project_version(self.TEST_REPO_DIRECTORY, "dev"),
             "0.2.0-dev.1"
         )
 
         logger.debug("Testing 'dev' reference version update for v1/new config format")
         self.assertEqual(
-            configparser_v1.get_project_version(self.TEST_PROJECT_DIRECTORY_1),
+            configparser_v1.get_project_version(self.TEST_REPO_DIRECTORY),
             "0.2.0-dev.1"
         )
 
@@ -254,16 +254,16 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
         configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
 
         configparser_v1.update_project_history(
-            self.TEST_PROJECT_DIRECTORY_1,
+            self.TEST_REPO_DIRECTORY,
             bump_type="major",
             commit_sha="#######"
         )
 
         logger.debug("Testing 'history' parameter update for v0/old config format")
         self.assertEqual(
-            configparser_v1.get_project_history(self.TEST_PROJECT_DIRECTORY_1),
+            configparser_v1.get_project_history(self.TEST_REPO_DIRECTORY),
             {
-                "latest_bump_type": "major",
+                "next_release_type": "major",
                 "latest_bump_commit_hash": "#######"
             }
         )

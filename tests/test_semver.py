@@ -26,7 +26,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -58,7 +58,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -85,7 +85,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -113,7 +113,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
 
         logger.debug("Testing versioning object preparation for v0/old Comet configuration format")
         SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -124,7 +124,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
 
         logger.debug("Testing versioning object preparation for v1/new Comet configuration format")
         SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -138,7 +138,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         )
         with self.assertRaises(Exception):
             SemVer(
-                project_path=self.TEST_PROJECT_DIRECTORY_1,
+                project_path=self.TEST_REPO_DIRECTORY,
                 version_files=[
                     self.TEST_PROJECT_VERSION_FILE
                 ],
@@ -162,7 +162,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -204,7 +204,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -323,7 +323,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "configuration format"
         )
         semver_v1_with_one_group_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -345,7 +345,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "Testing version files update without version regex pattern for v1/new Comet configuration format"
         )
         semver_v1_without_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -368,7 +368,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "configuration format"
         )
         semver_v1_with_zero_group_regex = SemVer(
-            project_path=self.TEST_PROJECT_DIRECTORY_1,
+            project_path=self.TEST_REPO_DIRECTORY,
             version_files=[
                 self.TEST_PROJECT_VERSION_FILE
             ],
@@ -387,7 +387,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         logger.debug("Testing version files update exception handling")
         with self.assertRaises(Exception):
             semver_v1_with_one_group_regex = SemVer(
-                project_path=self.TEST_PROJECT_DIRECTORY_1,
+                project_path=self.TEST_REPO_DIRECTORY,
                 version_files=[
                     self.TEST_PROJECT_VERSION_FILE
                 ],
@@ -399,6 +399,7 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             semver_v1_with_one_group_regex.update_version_files(
                 self.TEST_DEV_VERSION, f"{semver_v1_with_one_group_regex.get_final_version()}"
             )
+
 
 if __name__ == '__main__':
     unittest.main()
