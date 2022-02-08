@@ -246,7 +246,14 @@ class ConfigParser(object):
         if self.has_deprecated_versioning_format:
             logger.deprecated(
                 f"Deprecated versioning format is configured for the Comet-managed projects that uses "
-                f"'dev_version' and 'stable_version' parameters"
+                f"'dev_version' and 'stable_version' parameters. These parameters have been deprecated in "
+                f"of just 'version' parameter which relies additional 'history' parameter."
+            )
+        if type(self._lookup_parameter_value("strategy")) is str:
+            logger.deprecated(
+                f"'strategy' parameter of type 'str' has been deprecated in favor of 'strategy' parameter of type "
+                f"'dict'. This new 'strategy' parameter format provides support for setting selected strategy type "
+                f"and its additional configured options. "
             )
 
     def _validate_config_schema(self) -> None:
@@ -673,9 +680,7 @@ class ConfigParser(object):
         options = {}
         if type(self._lookup_parameter_value("strategy")) is str:
             with CometDeprecationContext(
-                    "'strategy' parameter of type 'str' has been deprecated in favor of 'strategy' parameter of type "
-                    "'dict'. This new 'strategy' parameter format provides support for setting selected strategy type "
-                    "and its additional configured options "
+                f"Setting strategy options for the deprecated 'strategy' parameter type"
             ):
                 options["stable_branch"] = self._lookup_parameter_value("stable_branch")
                 options["development_branch"] = self._lookup_parameter_value("development_branch")
