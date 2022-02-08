@@ -69,7 +69,7 @@ class CometDeprecationContext(object):
 
     def __enter__(self):
         logger.debug(f"Executing additional lines of code to support the deprecated functionalities")
-        logger.deprecated(self.reason)
+        logger.debug(self.reason)
 
     def __exit__(self, *args, **kwargs):
         logger.debug(f"End of additional lines of code to support the deprecated functionalities")

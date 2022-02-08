@@ -273,19 +273,6 @@ class ConfigParser(object):
             raise Exception(f"Comet configuration Schema validation failed. {err.message}")
 
     @CometUtilities.deprecated_function_warning
-    def _validate_supported_values(self) -> None:
-        """
-        Validates that the supported values for Comet-managed project configuration parameters are provided.
-
-        :return: None
-        :raises AssertionError:
-            raises an exception if unsupported configuration file parameter values are provided
-        """
-        assert self.config["strategy"] in self.SUPPORTED_STRATEGIES, \
-            f"Unsupported work flow strategy [{self.config['strategy']}] is requested. " \
-            f"Supported work flows are [{','.join(self.SUPPORTED_STRATEGIES)}]"
-
-    @CometUtilities.deprecated_function_warning
     def _validate_version_type(self, version_type: str) -> None:
         """
         Validates the requested version type according to the supported version types specified in
@@ -700,7 +687,11 @@ class ConfigParser(object):
         """
         try:
             if version_type:
-                self._validate_version_type(version_type)
+                with CometDeprecationContext(
+                    f"Validating the version type in deprecated versioning format. Deprecated versioning format has "
+                    f"two parameters, 'dev_version' and 'stable_version'."
+                ):
+                    self._validate_version_type(version_type)
             self._validate_project_path(project_path)
             return self._lookup_project_parameter_value(
                 project_path, f"{version_type}_version" if version_type else "version"
@@ -724,9 +715,11 @@ class ConfigParser(object):
         """
         try:
             if version_type:
-                self._validate_version_type(version_type)
-            # TODO: Remove redundant config validation line
-            # self._validate_config()
+                with CometDeprecationContext(
+                        f"Validating the version type in deprecated versioning format. Deprecated versioning format has "
+                        f"two parameters, 'dev_version' and 'stable_version'."
+                ):
+                    self._validate_version_type(version_type)
             self._validate_project_path(project_path)
             self._change_project_parameter_value(
                 project_path,
