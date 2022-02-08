@@ -243,7 +243,7 @@ class ConfigParser(object):
         self.config: dict = {}
 
     def _print_deprecated_parameters_warnings(self) -> None:
-        if self.has_deprecated_versioning_format:
+        if self.has_deprecated_versioning_format():
             logger.deprecated(
                 f"Deprecated versioning format is configured for the Comet-managed projects that uses "
                 f"'dev_version' and 'stable_version' parameters. These parameters have been deprecated in "

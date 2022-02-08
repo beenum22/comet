@@ -95,25 +95,21 @@ class CometUtilities(object):
     @staticmethod
     def unstable_function_warning(func) -> None:
         def wrapper(*args, **kwargs):
-            logger.warning(f"Unstable function/method '{func.__qualname__}' is executed!")
+            logger.debug(f"Unstable function/method '{func.__qualname__}' is executed!")
             return func(*args, **kwargs)
         return wrapper
 
     @staticmethod
     def deprecated_function_warning(func) -> None:
         def wrapper(*args, **kwargs):
-            logger.deprecated(f"Deprecated function/method '{func.__qualname__}' is executed!")
+            logger.debug(f"Deprecated function/method '{func.__qualname__}' is executed!")
             return func(*args, **kwargs)
         return wrapper
 
     @staticmethod
-    def deprecation_utility_lines() -> None:
-        logger.deprecated(f"Additional line/s to support deprecated features/logic is/are executed")
-
-    @staticmethod
     def deprecation_facilitation_warning(func) -> None:
         def wrapper(*args, **kwargs):
-            logger.deprecated(f"Function/Method '{func.__qualname__}' to support deprecated features/logic is executed")
+            logger.debug(f"Function/Method '{func.__qualname__}' to support deprecated features/logic is executed")
             return func(*args, **kwargs)
         return wrapper
 
@@ -123,13 +119,13 @@ class CometUtilities(object):
             def wrapper_2(*args, **kwargs):
                 for param in removed_params:
                     if param in args or (param in kwargs and kwargs[param] not in [None, ""]):
-                        logger.deprecated(
+                        logger.debug(
                             f"Deprecated argument '{param}' is provided in '{func.__qualname__}' "
                             f"method/function"
                         )
                 for param in replaced_params:
                     if param in args or param in kwargs:
-                        logger.deprecated(
+                        logger.debug(
                             f"Deprecated argument '{param}' that is replaced by '{replaced_params[param]}' "
                             f"is provided and '{func.__qualname__}' method/function"
                         )
