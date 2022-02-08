@@ -313,7 +313,6 @@ def main() -> None:
             banner()
             comet_logger.setLevel(logging.DEBUG)
             comet_logger.info("Comet log level set to debug")
-            comet_logger.deprecated("Comet log level set to debug")
             debug_mode = True
         else:
             banner()
