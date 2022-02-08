@@ -88,7 +88,7 @@ class ConfigParser(object):
             "properties": {
                 "strategy": {
                     "properties": {
-                        "model": {
+                        "type": {
                             "type": "string",
                             "enum": [
                                 "gitflow",
@@ -116,7 +116,7 @@ class ConfigParser(object):
                     },
                     "if": {
                         "properties": {
-                            "model": {
+                            "type": {
                                 "const": "gitflow"
                             }
                         }
@@ -677,7 +677,7 @@ class ConfigParser(object):
         """
         if type(self._lookup_parameter_value("strategy")) is str:
             return self._lookup_parameter_value("strategy")
-        return self._lookup_parameter_value("strategy")["model"]
+        return self._lookup_parameter_value("strategy")["type"]
 
     @CometUtilities.unstable_function_warning
     def get_strategy_options(self) -> dict:
