@@ -69,9 +69,11 @@ class CometDeprecationContext(object):
 
     def __enter__(self):
         logger.debug(f"Executing additional lines of code to support the deprecated functionalities")
+        logger.deprecated(self.reason)
 
     def __exit__(self, *args, **kwargs):
         logger.debug(f"End of additional lines of code to support the deprecated functionalities")
+
 
 class CometUtilities(object):
 
@@ -106,12 +108,12 @@ class CometUtilities(object):
 
     @staticmethod
     def deprecation_utility_lines() -> None:
-        logger.warning(f"Additional line/s to support deprecated features/logic is/are executed")
+        logger.deprecated(f"Additional line/s to support deprecated features/logic is/are executed")
 
     @staticmethod
     def deprecation_facilitation_warning(func) -> None:
         def wrapper(*args, **kwargs):
-            logger.warning(f"Function/Method '{func.__qualname__}' to support deprecated features/logic is executed")
+            logger.deprecated(f"Function/Method '{func.__qualname__}' to support deprecated features/logic is executed")
             return func(*args, **kwargs)
         return wrapper
 
@@ -121,16 +123,68 @@ class CometUtilities(object):
             def wrapper_2(*args, **kwargs):
                 for param in removed_params:
                     if param in args or (param in kwargs and kwargs[param] not in [None, ""]):
-                        logger.warning(
+                        logger.deprecated(
                             f"Deprecated argument '{param}' is provided in '{func.__qualname__}' "
                             f"method/function"
                         )
                 for param in replaced_params:
                     if param in args or param in kwargs:
-                        logger.warning(
+                        logger.deprecated(
                             f"Deprecated argument '{param}' that is replaced by '{replaced_params[param]}' "
                             f"is provided and '{func.__qualname__}' method/function"
                         )
                 return func(*args, **kwargs)
             return wrapper_2
         return wrapper_1
+
+    @staticmethod
+    def add_custom_logging_level(level_name: str, level_number: int, method_name: bool = None):
+        """
+        Comprehensively adds a new logging level to the `logging` module and the
+        currently configured logging class.
+
+        `level_name` becomes an attribute of the `logging` module with the value
+        `level_number`. `method_name` becomes a convenience method for both `logging`
+        itself and the class returned by `logging.getLoggerClass()` (usually just
+        `logging.Logger`). If `method_name` is not specified, `level_name.lower()` is
+        used.
+
+        To avoid accidental clobberings of existing attributes, this method will
+        raise an `AttributeError` if the level name is already an attribute of the
+        `logging` module or if the method name is already present
+
+        Note: I have added this function from a nice implementation found on stackoverflow. It is almost a copy of
+        the solution posted by original poster.
+        Reference: https://stackoverflow.com/a/35804945
+
+        Example
+        -------
+        >>> add_custom_logging_level('TRACE', logging.DEBUG - 5)
+        >>> logging.getLogger(__name__).setLevel("TRACE")
+        >>> logging.getLogger(__name__).trace('that worked')
+        >>> logging.trace('so did this')
+        >>> logging.TRACE
+        5
+
+        """
+        if not method_name:
+            method_name = level_name.lower()
+
+        if hasattr(logging, level_name):
+            raise AttributeError('{} already defined in logging module'.format(level_name))
+        if hasattr(logging, method_name):
+            raise AttributeError('{} already defined in logging module'.format(method_name))
+        if hasattr(logging.getLoggerClass(), method_name):
+            raise AttributeError('{} already defined in logger class'.format(method_name))
+
+        def log_for_level(self, message, *args, **kwargs):
+            if self.isEnabledFor(level_number):
+                self._log(level_number, message, args, **kwargs)
+
+        def log_to_root(message, *args, **kwargs):
+            logging.log(level_number, message, *args, **kwargs)
+
+        logging.addLevelName(level_number, level_name)
+        setattr(logging, level_name, level_number)
+        setattr(logging.getLoggerClass(), method_name, log_for_level)
+        setattr(logging, method_name, log_to_root)

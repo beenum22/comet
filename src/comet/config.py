@@ -5,7 +5,7 @@ from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 import os
 
-from .utilities import CometUtilities
+from .utilities import CometUtilities, CometDeprecationContext
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class ConfigParser(object):
 
     SUPPORTED_STRATEGIES: list = [
         "gitflow",
+        "tbd",
         "custom"
     ]
 
@@ -54,14 +55,96 @@ class ConfigParser(object):
             "strategy",
             "repo",
             "workspace",
-            "stable_branch",
-            "development_branch",
-            "release_branch_prefix",
             "projects"
         ],
+        "if": {
+            "properties": {
+                "strategy": {
+                    "type": "string"
+                }
+            }
+        },
+        "then": {
+            "properties": {
+                "strategy": {
+                    "enum": [
+                        "gitflow",
+                        "tbd",
+                        "custom"
+                    ]
+                }
+            },
+            "required": [
+                "strategy",
+                "repo",
+                "workspace",
+                "projects",
+                "stable_branch",
+                "development_branch",
+                "release_branch_prefix",
+            ]
+        },
+        "else": {
+            "properties": {
+                "strategy": {
+                    "properties": {
+                        "model": {
+                            "type": "string",
+                            "enum": [
+                                "gitflow",
+                                "tbd",
+                                "custom"
+                            ]
+                        },
+                        "options": {
+                            "type": [
+                                "object",
+                                "null"
+                            ],
+                            "properties": {
+                                "stable_branch": {
+                                    "type": "string"
+                                },
+                                "development_branch": {
+                                    "type": "string"
+                                },
+                                "release_branch_prefix": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "if": {
+                        "properties": {
+                            "model": {
+                                "const": "gitflow"
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "options"
+                        ],
+                        "properties": {
+                            "options": {
+                                "type": "object",
+                                "required": [
+                                    "stable_branch",
+                                    "development_branch",
+                                    "release_branch_prefix",
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "properties": {
             "strategy": {
-                "type": "string"
+                "type": [
+                    "object",
+                    "string"
+                ]
             },
             "repo": {
                 "type": "string"
@@ -168,7 +251,7 @@ class ConfigParser(object):
                 continue
             for project in self.config["projects"]:
                 if deprecated_param in project:
-                    logger.warning(
+                    logger.deprecated(
                         f"Deprecated parameter '{deprecated_param}' is provided for project [{project['path']}] "
                         f"in Comet configuration"
                     )
@@ -186,8 +269,10 @@ class ConfigParser(object):
             validate(instance=self.config, schema=self.SUPPORTED_CONFIG_SCHEMA)
             logger.debug("Comet configuration schema successfully validated")
         except ValidationError as err:
+            logger.debug(err)
             raise Exception(f"Comet configuration Schema validation failed. {err.message}")
 
+    @CometUtilities.deprecated_function_warning
     def _validate_supported_values(self) -> None:
         """
         Validates that the supported values for Comet-managed project configuration parameters are provided.
@@ -234,9 +319,10 @@ class ConfigParser(object):
             raises an exception if any type of configuration file validation fails
         """
         assert self.config, "No YAML configuration found! Please read the configuration file first."
-        self._validate_config_schema(), "YAML configuration schema validation failed!"
+        self._validate_config_schema()
         self._print_deprecated_parameters_warnings("dev_version", "stable_version")
-        self._validate_supported_values()
+        # TODO: Remove
+        # self._validate_supported_values()
 
     # TODO: Refine this method or remove if not needed
     # TODO: Add repository directory path if Comet is executed from a different directory
@@ -285,7 +371,7 @@ class ConfigParser(object):
         except AssertionError as err:
             raise Exception(err)
 
-    @CometUtilities.unsupported_function_error
+    @CometUtilities.unstable_function_warning
     def _lookup_parameter_value(self, parameter: str) -> [str, int, list, dict, None]:
         """
         Lookups a specified Comet parameter value in the Comet configuration file.
@@ -355,6 +441,7 @@ class ConfigParser(object):
             key = f"{version_type}_version" if version_type else "version"
             raise Exception(f"The requested version parameter [{key}] does not exist in Comet config")
 
+    # TODO: Upgrade for new formatting as well.
     def initialize_config(
             self,
             strategy: str = None,
@@ -451,6 +538,30 @@ class ConfigParser(object):
             logger.debug(err)
             raise
 
+    @CometUtilities.deprecation_facilitation_warning
+    def has_deprecated_versioning_format(self) -> bool:
+        """
+        Returns true if the deprecated versioning format is configured where 'dev_version' and 'stable_version'
+        parameters are configured for any Comet-managed project.
+
+        :return:
+            Returns the 'True' if the deprecated versioning format is configured or 'False' otherwise
+        """
+        found = False
+        if "dev_version" in self.config or "stable_version" in self.config:
+            found = True
+        else:
+            for project in self.config["projects"]:
+                if "dev_version" in project or "stable_version" in project:
+                    found = True
+        if found:
+            logger.deprecated(
+                f"Deprecated versioning format is configured for the Comet-managed projects that uses 'dev_version' "
+                f"and 'stable_version' parameters"
+            )
+        return found
+
+    @CometUtilities.unsupported_function_error
     def has_deprecated_config_parameter(self, deprecated_param: str) -> bool:
         """
         Checks if the provided parameter :param:`deprecated_param` is configured in the Comet configuration file.
@@ -556,6 +667,38 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Failed to get the project [{project_path}] release commit hash from the "
                             f"Comet configuration file")
+
+    @CometUtilities.unstable_function_warning
+    def get_strategy_type(self) -> str:
+        """
+        Fetches the configured strategy name.
+
+        :return: Configured strategy name
+        """
+        if type(self._lookup_parameter_value("strategy")) is str:
+            return self._lookup_parameter_value("strategy")
+        return self._lookup_parameter_value("strategy")["model"]
+
+    @CometUtilities.unstable_function_warning
+    def get_strategy_options(self) -> dict:
+        """
+        Fetches the configured strategy specific options map.
+
+        :return: Strategy specific configured options
+        """
+        options = {}
+        if type(self._lookup_parameter_value("strategy")) is str:
+            with CometDeprecationContext(
+                    "'strategy' parameter of type 'str' has been deprecated in favor of 'strategy' parameter of type "
+                    "'dict'. This new 'strategy' parameter format provides support for setting selected strategy type "
+                    "and its additional configured options "
+            ):
+                options["stable_branch"] = self._lookup_parameter_value("stable_branch")
+                options["development_branch"] = self._lookup_parameter_value("development_branch")
+                options["release_branch_prefix"] = self._lookup_parameter_value("release_branch_prefix")
+        else:
+            options = self._lookup_parameter_value("strategy")["options"]
+        return options
 
     @CometUtilities.deprecated_arguments_warning("version_type")
     def get_project_version(self, project_path: str, version_type: [str, None] = None) -> str:

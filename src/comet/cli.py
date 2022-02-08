@@ -9,8 +9,9 @@ from colorama import Fore, Style
 import coloredlogs
 
 from .work_flows import GitFlow
-from .work_flows import WorkflowRunner
+# from .work_flows import WorkflowRunner
 from .config import ConfigParser
+from .utilities import CometUtilities
 
 __author__ = 'Muneeb Ahmad'
 __version__ = '0.2.0'
@@ -50,6 +51,7 @@ def deprecated_args(*replaced_args):
                 sys.stderr.write(f"The option '{option_string}' is deprecated.\n")
             setattr(namespace, self.dest, values)
     return DeprecateAction
+
 
 def main() -> None:
     """
@@ -94,8 +96,63 @@ def main() -> None:
     """
     debug_mode = None
     comet_logger = logging.getLogger()
-    # coloredlogs.install(fmt="%(asctime)s %(name)s - %(levelname)s - %(message)s", level='DEBUG')
-    coloredlogs.install(fmt="%(levelname)s - %(message)s", level='DEBUG')
+    coloredlogs.DEFAULT_FIELD_STYLES = {
+        "asctime": {
+            "color": "green"
+        },
+        "hostname": {
+            "color": "magenta"
+        },
+        "levelname": {
+            "faint": True,
+            "color": "cyan"
+        },
+        "name": {
+            "color": "blue"
+        },
+        "programname": {
+            "color": "cyan"
+        },
+        "username": {
+            "color": "yellow"
+        }
+    }
+    coloredlogs.DEFAULT_LEVEL_STYLES = {
+        "critical": {
+            "bold": True,
+            "color": "red"
+        },
+        "debug": {
+            "color": "green",
+            "faint": True
+        },
+        "error": {
+            "color": "red"
+        },
+        "info": {
+            "color": "green"
+        },
+        "notice": {
+            "color": "magenta"
+        },
+        "success": {
+            "bold": True,
+            "color": "green"
+        },
+        "verbose": {
+            "color": "blue"
+        },
+        "warning": {
+            "color": "yellow"
+        },
+        "deprecated": {
+            "color": "yellow",
+            "faint": True
+        }
+    }
+    coloredlogs.install(fmt="%(levelname)s: %(message)s", level='DEBUG')
+    # Note: Custom logger level to print deprecated messages
+    CometUtilities.add_custom_logging_level('DEPRECATED', logging.INFO + 5)
     try:
         parser = argparse.ArgumentParser(
             prog="comet")
@@ -256,6 +313,7 @@ def main() -> None:
             banner()
             comet_logger.setLevel(logging.DEBUG)
             comet_logger.info("Comet log level set to debug")
+            comet_logger.deprecated("Comet log level set to debug")
             debug_mode = True
         else:
             banner()
