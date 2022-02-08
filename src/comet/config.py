@@ -242,24 +242,12 @@ class ConfigParser(object):
         self.config_path: str = config_path
         self.config: dict = {}
 
-    def _print_deprecated_parameters_warnings(self, *deprecated_params) -> None:
-        for deprecated_param in deprecated_params:
-            if deprecated_param in self.config:
-                logger.warning(
-                    f"Deprecated parameter '{deprecated_param}' is provided in Comet configuration"
-                )
-                continue
-            for project in self.config["projects"]:
-                if deprecated_param in project:
-                    logger.deprecated(
-                        f"Deprecated parameter '{deprecated_param}' is provided for project [{project['path']}] "
-                        f"in Comet configuration"
-                    )
-            if self.has_deprecated_versioning_format:
-                logger.deprecated(
-                    f"Deprecated versioning format is configured for the Comet-managed projects that uses "
-                    f"'dev_version' and 'stable_version' parameters"
-                )
+    def _print_deprecated_parameters_warnings(self) -> None:
+        if self.has_deprecated_versioning_format:
+            logger.deprecated(
+                f"Deprecated versioning format is configured for the Comet-managed projects that uses "
+                f"'dev_version' and 'stable_version' parameters"
+            )
 
     def _validate_config_schema(self) -> None:
         """
@@ -325,7 +313,7 @@ class ConfigParser(object):
         """
         assert self.config, "No YAML configuration found! Please read the configuration file first."
         self._validate_config_schema()
-        self._print_deprecated_parameters_warnings("dev_version", "stable_version")
+        self._print_deprecated_parameters_warnings()
         # TODO: Remove
         # self._validate_supported_values()
 
