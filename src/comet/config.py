@@ -255,6 +255,11 @@ class ConfigParser(object):
                         f"Deprecated parameter '{deprecated_param}' is provided for project [{project['path']}] "
                         f"in Comet configuration"
                     )
+            if self.has_deprecated_versioning_format:
+                logger.deprecated(
+                    f"Deprecated versioning format is configured for the Comet-managed projects that uses "
+                    f"'dev_version' and 'stable_version' parameters"
+                )
 
     def _validate_config_schema(self) -> None:
         """
@@ -547,19 +552,10 @@ class ConfigParser(object):
         :return:
             Returns the 'True' if the deprecated versioning format is configured or 'False' otherwise
         """
-        found = False
-        if "dev_version" in self.config or "stable_version" in self.config:
-            found = True
-        else:
-            for project in self.config["projects"]:
-                if "dev_version" in project or "stable_version" in project:
-                    found = True
-        if found:
-            logger.deprecated(
-                f"Deprecated versioning format is configured for the Comet-managed projects that uses 'dev_version' "
-                f"and 'stable_version' parameters"
-            )
-        return found
+        for project in self.config["projects"]:
+            if "dev_version" in project or "stable_version" in project:
+                return True
+        return False
 
     @CometUtilities.unsupported_function_error
     def has_deprecated_config_parameter(self, deprecated_param: str) -> bool:
