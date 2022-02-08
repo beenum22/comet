@@ -371,7 +371,6 @@ class ConfigParser(object):
         except AssertionError as err:
             raise Exception(err)
 
-    @CometUtilities.unstable_function_warning
     def _lookup_parameter_value(self, parameter: str) -> [str, int, list, dict, None]:
         """
         Lookups a specified Comet parameter value in the Comet configuration file.
@@ -384,7 +383,6 @@ class ConfigParser(object):
         except KeyError as err:
             raise Exception(f"The requested Comet parameter [{parameter}] does not exist in Comet config")
 
-    @CometUtilities.unstable_function_warning
     def _lookup_project_parameter_value(self, project_path: str, parameter: str) -> [str, int, list, dict, None]:
         """
         Lookups a specified Comet parameter value for the requested project in the Comet configuration file.
@@ -774,10 +772,12 @@ class ConfigParser(object):
             raise Exception(f"Failed to update the project [{project_path}] version bump history in the Comet "
                             f"configuration file")
 
-    def read_config(self, sanitize=True):
+    def read_config(self, validate: bool = True, sanitize: bool = True):
         """
         Reads the YAML-based Comet configuration file and stores it as :attr:`config`.
 
+        :param validate:
+            Optionally executes configuration validation. Default is set to `True`.
         :param sanitize:
             Optionally executes sanitization/normalization for project paths. Default is set to `True`.
         :return: None
@@ -789,7 +789,8 @@ class ConfigParser(object):
                 f"Unable to find the Comet configuration file [{self.config_path}]"
             with open(self.config_path) as f:
                 self.config = yaml.load(f, Loader=SafeLoader)
-            self._validate_config()
+            if validate:
+                self._validate_config()
             if sanitize:
                 self._sanitize_config()
         except AssertionError as err:

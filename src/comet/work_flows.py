@@ -199,7 +199,7 @@ class WorkflowBase(object):
             self.project_config = ConfigParser(
                 config_path=self.project_config_path
             )
-            self.project_config.read_config(sanitize=True)
+            self.project_config.read_config(sanitize=True, validate=True)
 
             self.scm = Scm(
                 scm_provider=self.scm_provider,

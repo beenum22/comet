@@ -245,7 +245,7 @@ class SemVer(object):
             project_config = ConfigParser(
                 config_path=self.project_version_file
             )
-            project_config.read_config()
+            project_config.read_config(validate=False)
             return project_config.get_project_version(self.project_path, version_type=version_type)
         except OSError as err:
             logger.debug(err)
@@ -269,7 +269,7 @@ class SemVer(object):
             project_config = ConfigParser(
                 config_path=self.project_version_file
             )
-            project_config.read_config()
+            project_config.read_config(validate=False)
             project_config.update_project_version(self.project_path, version, version_type)
         except OSError as err:
             logger.debug(err)
