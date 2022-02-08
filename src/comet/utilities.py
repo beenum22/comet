@@ -102,7 +102,7 @@ class CometUtilities(object):
     @staticmethod
     def deprecated_function_warning(func) -> None:
         def wrapper(*args, **kwargs):
-            logger.warning(f"Deprecated function/method '{func.__qualname__}' is executed!")
+            logger.deprecated(f"Deprecated function/method '{func.__qualname__}' is executed!")
             return func(*args, **kwargs)
         return wrapper
 
@@ -159,12 +159,12 @@ class CometUtilities(object):
 
         Example
         -------
-        >>> add_custom_logging_level('TRACE', logging.DEBUG - 5)
-        >>> logging.getLogger(__name__).setLevel("TRACE")
-        >>> logging.getLogger(__name__).trace('that worked')
-        >>> logging.trace('so did this')
-        >>> logging.TRACE
-        5
+            add_custom_logging_level('TRACE', logging.DEBUG - 5)
+            logging.getLogger(__name__).setLevel("TRACE")
+            logging.getLogger(__name__).trace('that worked')
+            logging.trace('so did this')
+            logging.TRACE
+            5
 
         """
         if not method_name:
