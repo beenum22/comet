@@ -209,7 +209,8 @@ class WorkflowBase(object):
                 repo=self.project_config.config["repo"],
                 workspace=self.project_config.config["workspace"],
                 repo_local_path=self.project_local_path,
-                ssh_private_key_path=self.ssh_private_key_path
+                ssh_private_key_path=self.ssh_private_key_path,
+                configure_remote=self.push_changes
             )
         except Exception:
             raise

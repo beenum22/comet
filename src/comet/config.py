@@ -247,7 +247,7 @@ class ConfigParser(object):
             logger.deprecated(
                 f"Deprecated versioning format is configured for the Comet-managed projects that uses "
                 f"'dev_version' and 'stable_version' parameters. These parameters have been deprecated in "
-                f"of just 'version' parameter which relies additional 'history' parameter."
+                f"of just 'version' parameter and 'history' parameter."
             )
         if type(self._lookup_parameter_value("strategy")) is str:
             logger.deprecated(

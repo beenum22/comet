@@ -20,6 +20,8 @@ class ScmException(Exception):
         self.msg = msg
 
 
+# TODO: Add to check to make sure remote URL is according to the requested Git connection type
+# TODO: Fail if it fails to push changes to the remote due to invalid permissions
 class Scm(object):
     """Backend to handle interaction with Source Code Management (SCM) Provider.
 
@@ -83,7 +85,8 @@ class Scm(object):
             ssh_private_key_path: str = "~/.ssh/id_rsa",
             repo: str = "",
             workspace: str = "",
-            repo_local_path: str = "./"
+            repo_local_path: str = "./",
+            configure_remote: bool = False
     ) -> None:
         """
         Initialize a new SCM class and returns None.
@@ -103,6 +106,7 @@ class Scm(object):
         :param repo: Target repository name
         :param workspace: Workspace/username with target repository
         :param repo_local_path: Repository path on the local machine
+        :param configure_remote: Optional flag to configure remote repository
         :return: None
         :raises AssertionError:
             raises an exception for missing required attributes or invalid attributes, failed SCM upstream server/s
@@ -117,10 +121,12 @@ class Scm(object):
         self.repo = repo
         self.workspace = workspace
         self.repo_local_path = repo_local_path
+        self.configure_remote = configure_remote
         self.repo_url = None
         self.repo_object = None
         self._pre_checks()
-        self.generate_repo_url()
+        if self.configure_remote:
+            self.generate_repo_url()
         self.prepare_repo()
 
     def _pre_checks(self) -> None:
@@ -148,7 +154,7 @@ class Scm(object):
                 self.scm_provider,
                 ",".join(list(self.SUPPORTED_SCM_PROVIDERS.keys()))
             )
-        if self.connection_type == "ssh":
+        if self.connection_type == "ssh" and self.configure_remote:
             self._validate_ssh_private_key()
         self.repo_local_path = os.path.abspath(self.repo_local_path)
 
@@ -406,11 +412,13 @@ class Scm(object):
                     f"Cloning Git repository {self.workspace}/{self.repo}] from "
                     f"remote SCM provider [{self.scm_provider}] server"
                 )
+                # TODO: Is it revelant considering I need info about remote URL using Comet config, which exists at
+                #       root of this repo?
                 Repo.clone_from(url=self.repo_url, to_path=self.repo_local_path)
             self.repo_object = Repo(self.repo_local_path)
             logger.debug(
-                f"Successfully prepared Git repository [{self.workspace}/{self.repo}] "
-                f"with remote URL [{self.repo_url}]"
+                f"Successfully prepared Git repository [{self.workspace}/{self.repo}]"
+                f"{' with remote URL [' + self.repo_url + ']' if self.repo_url else ''}"
             )
         except GitError as err:
             logger.error("Failed to clone the Git repository [%s/%s] from remote SCM provider [%s] server",
