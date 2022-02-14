@@ -718,7 +718,7 @@ class GitFlow(WorkflowBase):
                 tags=False
             )
 
-    def branch_flows(self) -> None:
+    def branch_flow(self) -> None:
         """
         Executes the branch flow according to the source or active branch on the local Git repository.
 
@@ -1242,3 +1242,404 @@ class GitFlow(WorkflowBase):
                 push=self.push_changes
             )
         return changed_projects
+
+
+class TBD(WorkflowBase):
+    """Backend to handle Trunk Based Development work flows.
+
+    This GitFlow backend implements customized Gitflow-based development work flows for Comet-managed projects. The
+    GitFlow object provides work flows for branches and releases. Detailed overview of the work flows is given below:
+
+    Branch Flows:
+        Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
+        branches according to the type of a branch.
+
+        1. Stable branch
+           Underdevelopment
+
+        2. Development branch
+           Development branch flow is executed for a branch specified in :ivar:`development_branch` parameter. It uses
+           stable branch version as a reference. If new commits are found on the development branch in comparison to
+           the stable branch, it will bump the development version according to the types of commits found. Versions
+           bumps are performed for the keywords/identifiers found specified in the `ConventionalCommits` class.
+
+           Versions on the development branch have an appended pre-release identifier `dev`.
+
+           For example:
+
+           Stable version =  1.0.0
+
+           Current Dev version = 1.0.0-dev.1
+
+           One minor change is merged to the development branch.
+
+           New Dev version = 1.1.0-dev.1
+
+           Another minor change is merged.
+
+           New Dev version = 1.1.0-dev.2
+
+           One major change is merged to the development branch.
+
+           New Dev version = 2.0.0-dev.1
+
+        3. Release branch
+           Release branch flow is executed for branches with a prefix as specified in `release_branch_prefix` parameter
+           in the Comet configuration file. It uses development version as a reference. If new commits are found on the
+           release branch in comparison to the development branch, it will look for keywords/identifiers specified in
+           the `ConventionalCommits` class for version upgrades and only bump the pre-release version.
+
+           Versions on the release branch have an appended pre-release identifier `rc`.
+
+           For example:
+
+           Dev version =  1.0.0-dev.1
+
+           Current release version = 1.0.0-rc.1
+
+           One patch change is merged to the release branch.
+
+           New release version = 1.0.0-rc.2
+
+        4. Default branch (Feature/Bugfix/Misc)
+           Default branch flow is executed for any branch that doesn't have a dedicated flow. If new commits are found
+           in comparison to the development branch, it will upgrade the version by appending a 40 Bytes Hex version for
+           latest SHA-1 commit hash as metadata. After the upgrade, it will commit the changes with an optional
+           :ivar:`push_changes` flag that will push changes to the remote if it is set.
+
+           For example:
+
+           Dev version = 0.1.0-dev.1
+
+           Default branch version =  0.1.0-dev.1+1d1f848c0a59b224206da26fbcae11e0bc5f5190
+
+    Release Flows:
+        1. Release Candidate branch
+        2. Release to Stable branch
+
+
+    handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
+    branches according to the type of a branch.
+
+     . The idea is
+    to have a class that handles all the Semantic Versioning related operations for the requested project. This class
+    depends on `ConfigParser` class and is only supposed to be used with Comet too. It can be used with other tools if
+    they follow the Comet philosophy or design.
+
+    The SemVer object can read the reference version in the main project version file (.comet.yml usually), bump it
+    according to the requested type of version bump and update the main project version file. Since, it depends on
+    the Comet design, it can use two types of reference versions: `dev` and `stable`.
+    This SemVer object also supports updating project specific version file paths using the provided regex pattern.
+
+    .. important::
+        Semver instance represents one project version only.
+
+    Example:
+
+    .. code-block:: python
+
+        gitflow = GitFlow(
+            connection_type="https",
+            scm_provider="bitbucket",
+            username="dummy",
+            password="test",
+            ssh_private_key_path="~/.ssh/id_rsa",
+            project_local_path="./",
+            project_config_path=".comet.yml",
+            push_changes=False
+        )
+
+        gitflow.default_branch_flow()
+
+    """
+
+    def __init__(
+            self,
+            connection_type: str = "https",
+            scm_provider: str = "bitbucket",
+            username: str = "",
+            password: str = "",
+            ssh_private_key_path: str = "~/.ssh/id_rsa",
+            project_local_path: str = "./",
+            project_config_path: str = "./comet",
+            push_changes: bool = False
+    ) -> None:
+        """
+        Initializes a GitFlow object.
+
+        :ivar connection_type: Git connection type for SCM provider
+        :ivar scm_provider: Source Code Management Provider name
+        :ivar username: Git username with write access to the project/repository
+        :ivar password: Git user password with write access to the project/repository
+        :ivar ssh_private_key_path: SSH private key file path on the local machine with write access to the project/repository
+        :ivar project_config_path: Comet configuration file
+        :ivar project_local_path: Local repository directory path
+        :ivar push_changes: Optional flag to push changes to remote/upstream repository
+        :return: None
+        :raises Exception:
+            raises an exception if it fails to execute work flow preparation steps
+        """
+        super().__init__(
+            connection_type,
+            scm_provider,
+            username,
+            password,
+            ssh_private_key_path,
+            project_local_path,
+            project_config_path,
+            push_changes
+        )
+        pass
+
+    @CometUtilities.unstable_function_warning
+    def release_flow(self, branches: bool = False) -> None:
+        """
+        Executes the Release flow according to the specified parameters.
+        There are two types of Release flows:
+            1. Direct release of the source/active branch to the stable branch
+            2. Release Candidate branch creation
+
+        :param branches: Branches flag that specifies creation of release candidate branches only
+        :return: None
+        """
+        pass
+
+    def sync_flow(self) -> None:
+        """
+        Syncs the stable branch with the development branch.
+
+        :return: None
+        """
+        pass
+
+    def branch_flow(self) -> None:
+        """
+        Executes the branch flow according to the source or active branch on the local Git repository.
+
+        :return: None
+        """
+        pass
+
+
+class WorkflowRunner(object):
+    """Backend to handle Trunk Based Development work flows.
+
+    This GitFlow backend implements customized Gitflow-based development work flows for Comet-managed projects. The
+    GitFlow object provides work flows for branches and releases. Detailed overview of the work flows is given below:
+
+    Branch Flows:
+        Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
+        branches according to the type of a branch.
+
+        1. Stable branch
+           Underdevelopment
+
+        2. Development branch
+           Development branch flow is executed for a branch specified in :ivar:`development_branch` parameter. It uses
+           stable branch version as a reference. If new commits are found on the development branch in comparison to
+           the stable branch, it will bump the development version according to the types of commits found. Versions
+           bumps are performed for the keywords/identifiers found specified in the `ConventionalCommits` class.
+
+           Versions on the development branch have an appended pre-release identifier `dev`.
+
+           For example:
+
+           Stable version =  1.0.0
+
+           Current Dev version = 1.0.0-dev.1
+
+           One minor change is merged to the development branch.
+
+           New Dev version = 1.1.0-dev.1
+
+           Another minor change is merged.
+
+           New Dev version = 1.1.0-dev.2
+
+           One major change is merged to the development branch.
+
+           New Dev version = 2.0.0-dev.1
+
+        3. Release branch
+           Release branch flow is executed for branches with a prefix as specified in `release_branch_prefix` parameter
+           in the Comet configuration file. It uses development version as a reference. If new commits are found on the
+           release branch in comparison to the development branch, it will look for keywords/identifiers specified in
+           the `ConventionalCommits` class for version upgrades and only bump the pre-release version.
+
+           Versions on the release branch have an appended pre-release identifier `rc`.
+
+           For example:
+
+           Dev version =  1.0.0-dev.1
+
+           Current release version = 1.0.0-rc.1
+
+           One patch change is merged to the release branch.
+
+           New release version = 1.0.0-rc.2
+
+        4. Default branch (Feature/Bugfix/Misc)
+           Default branch flow is executed for any branch that doesn't have a dedicated flow. If new commits are found
+           in comparison to the development branch, it will upgrade the version by appending a 40 Bytes Hex version for
+           latest SHA-1 commit hash as metadata. After the upgrade, it will commit the changes with an optional
+           :ivar:`push_changes` flag that will push changes to the remote if it is set.
+
+           For example:
+
+           Dev version = 0.1.0-dev.1
+
+           Default branch version =  0.1.0-dev.1+1d1f848c0a59b224206da26fbcae11e0bc5f5190
+
+    Release Flows:
+        1. Release Candidate branch
+        2. Release to Stable branch
+
+
+    handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
+    branches according to the type of a branch.
+
+     . The idea is
+    to have a class that handles all the Semantic Versioning related operations for the requested project. This class
+    depends on `ConfigParser` class and is only supposed to be used with Comet too. It can be used with other tools if
+    they follow the Comet philosophy or design.
+
+    The SemVer object can read the reference version in the main project version file (.comet.yml usually), bump it
+    according to the requested type of version bump and update the main project version file. Since, it depends on
+    the Comet design, it can use two types of reference versions: `dev` and `stable`.
+    This SemVer object also supports updating project specific version file paths using the provided regex pattern.
+
+    .. important::
+        Semver instance represents one project version only.
+
+    Example:
+
+    .. code-block:: python
+
+        gitflow = GitFlow(
+            connection_type="https",
+            scm_provider="bitbucket",
+            username="dummy",
+            password="test",
+            ssh_private_key_path="~/.ssh/id_rsa",
+            project_local_path="./",
+            project_config_path=".comet.yml",
+            push_changes=False
+        )
+
+        gitflow.default_branch_flow()
+
+    """
+
+    def __init__(
+            self,
+            connection_type: str = "https",
+            scm_provider: str = "github",
+            username: str = "",
+            password: str = "",
+            ssh_private_key_path: str = "~/.ssh/id_rsa",
+            project_local_path: str = "./",
+            project_config_path: str = "./comet",
+            push_changes: bool = False
+    ) -> None:
+        """
+        Initializes a GitFlow object.
+
+        :ivar connection_type: Git connection type for SCM provider
+        :ivar scm_provider: Source Code Management Provider name
+        :ivar username: Git username with write access to the project/repository
+        :ivar password: Git user password with write access to the project/repository
+        :ivar ssh_private_key_path: SSH private key file path on the local machine with write access to the project/repository
+        :ivar project_config_path: Comet configuration file
+        :ivar project_local_path: Local repository directory path
+        :ivar push_changes: Optional flag to push changes to remote/upstream repository
+        :return: None
+        :raises Exception:
+            raises an exception if it fails to execute work flow preparation steps
+        """
+        self.connection_type = connection_type
+        self.scm_provider = scm_provider
+        self.username = username
+        self.password = password
+        self.ssh_private_key_path = ssh_private_key_path
+        self.project_config_path = project_config_path
+        self.project_local_path = project_local_path
+        self.push_changes = push_changes
+        self.runner = None
+        self.prepare_workflow()
+
+    def get_config_strategy_type(self):
+        """
+        Fetch the Comet configuration strategy type.
+
+        :return: Strategy type string
+        """
+        project_config = ConfigParser(config_path=self.project_config_path)
+        project_config.read_config()
+        return project_config.get_strategy_type()
+
+    def prepare_workflow(self):
+        """
+        Prepare workflow runner according to the strategy type configured in Comet configuration
+
+        :return: None
+        """
+        if self.get_config_strategy_type() == "gitflow":
+            self.runner = GitFlow(
+                scm_provider=self.scm_provider,
+                connection_type=self.connection_type,
+                username=self.username,
+                password=self.password,
+                ssh_private_key_path=self.ssh_private_key_path,
+                project_local_path=self.project_local_path,
+                project_config_path=self.project_config_path,
+                push_changes=self.push_changes
+            )
+        elif self.get_config_strategy_type() == "tbd":
+            raise Exception(f"Trunk Based Development (tbd) strategy is currently not supported by Comet. Support for "
+                            f"TBD strategy is in the roadmap and will be added in future releases")
+
+            # self.runner = TBD(
+            #     scm_provider=self.scm_provider,
+            #     connection_type=self.connection_type,
+            #     username=self.username,
+            #     password=self.password,
+            #     ssh_private_key_path=self.ssh_private_key_path,
+            #     project_local_path=self.project_local_path,
+            #     project_config_path=self.project_config_path,
+            #     push_changes=self.push_changes
+            # )
+        elif self.get_config_strategy_type() == "custom":
+            raise Exception(f"Custom strategy is currently not supported by Comet. Support for "
+                            f"Custom strategy is in the roadmap and will be added in future releases")
+
+    def run_branch_flow(self):
+        """
+        Execute Comet branch flow according to the strategy type configured in Comet configuration
+
+        :return: Comet branch flow
+        """
+        return self.runner.branch_flow()
+
+    def run_release_candidate_flow(self):
+        """
+        Execute Comet release candidate flow according to the strategy type configured in Comet configuration
+
+        :return: Comet release candidate flow
+        """
+        return self.runner.release_flow(branches=True)
+
+    def run_release_flow(self):
+        """
+        Execute Comet release flow according to the strategy type configured in Comet configuration
+
+        :return: Comet release flow
+        """
+        return self.runner.release_flow(branches=False)
+
+    def run_sync_flow(self):
+        """
+        Execute Comet sync flow according to the strategy type configured in Comet configuration
+
+        :return: Comet sync flow
+        """
+        return self.runner.sync_flow()

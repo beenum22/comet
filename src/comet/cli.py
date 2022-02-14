@@ -9,7 +9,7 @@ from colorama import Fore, Style
 import coloredlogs
 
 from .work_flows import GitFlow
-# from .work_flows import WorkflowRunner
+from .work_flows import WorkflowRunner
 from .config import ConfigParser
 from .utilities import CometUtilities
 
@@ -353,25 +353,6 @@ def main() -> None:
                 project_config.write_config()
         elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
               args.workflow in ["sync", "branch-flow", "release-candidate", "release"]):
-            gitflow = GitFlow(
-                scm_provider=args.scm_provider,
-                connection_type=args.connection_type,
-                username=args.username,
-                password=args.password,
-                ssh_private_key_path=args.ssh_private_key_path,
-                project_local_path=args.repo_local_path,
-                project_config_path=args.project_config,
-                push_changes=args.push
-            )
-        if args.run == "branch-flow" or args.workflow == "branch-flow":
-            gitflow.branch_flows()
-        elif args.run == "release-candidate" or args.workflow == "release-candidate":
-            gitflow.release_flow(branches=True)
-        elif args.run == "release" or args.workflow == "release":
-            gitflow.release_flow(branches=False)
-        elif args.run == "sync" or args.workflow == "sync":
-            gitflow.sync_flow()
-        elif args.run == "experiment":
             workflow = WorkflowRunner(
                 scm_provider=args.scm_provider,
                 connection_type=args.connection_type,
@@ -382,7 +363,14 @@ def main() -> None:
                 project_config_path=args.project_config,
                 push_changes=args.push
             )
-            workflow.branch_flow()
+        if args.run == "branch-flow" or args.workflow == "branch-flow":
+            workflow.run_branch_flow()
+        elif args.run == "release-candidate" or args.workflow == "release-candidate":
+            workflow.run_release_candidate_flow()
+        elif args.run == "release" or args.workflow == "release":
+            workflow.run_release_flow()
+        elif args.run == "sync" or args.workflow == "sync":
+            workflow.run_sync_flow()
     except Exception as err:
         if not debug_mode:
             comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
