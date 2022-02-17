@@ -202,23 +202,6 @@ def main() -> None:
             action="store_true"
         )
         flow_group.add_argument(
-            "sync",
-            nargs="?",
-            choices=[
-                "init",
-                "branch-flow",
-                "release-candidate",
-                "release",
-                "sync"
-            ],
-            help="Comet action to execute.\n"
-                 "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
-                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
-                 "release-candidate: Create Release candidate branch for Comet managed project/s, "
-                 "release: Release a new version in stable branch for Comet managed project/s, "
-                 "sync: Synchronizes the development branch with stable branch"
-        )
-        flow_group.add_argument(
             "workflow",
             nargs="?",
             choices=[
@@ -226,14 +209,16 @@ def main() -> None:
                 "branch-flow",
                 "release-candidate",
                 "release",
-                "sync"
+                "sync",
+                "migrate-config"
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
                  "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
                  "release-candidate: Create Release candidate branch for Comet managed project/s, "
                  "release: Release a new version in stable branch for Comet managed project/s, "
-                 "sync: Synchronizes the development branch with stable branch"
+                 "sync: Synchronizes the development branch with stable branch, "
+                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format"
         )
         flow_group.add_argument(
             "--run",
@@ -243,14 +228,15 @@ def main() -> None:
                 "release-candidate",
                 "release",
                 "sync",
-                "experiment"
+                "migrate-config"
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
                  "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
                  "release-candidate: Create Release candidate branch for Comet managed project/s, "
                  "release: Release a new version in stable branch for Comet managed project/s, "
-                 "sync: Synchronizes the development branch with stable branch",
+                 "sync: Synchronizes the development branch with stable branch, "
+                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format",
             required=False,
             action=deprecated_args("[sync, init, branch-flow, release, release-candidate]")
         )
@@ -351,6 +337,12 @@ def main() -> None:
                 logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
                 project_config.initialize_config()
                 project_config.write_config()
+        elif args.run == "migrate-config" or args.workflow == "migrate-config":
+            project_config = ConfigParser(config_path=args.project_config)
+            project_config.read_config()
+            logging.info(f"Migrating Comet configuration [{args.project_config}] to a newer/latest format")
+            project_config.migrate_deprecated_config()
+            project_config.write_config()
         elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
               args.workflow in ["sync", "branch-flow", "release-candidate", "release"]):
             workflow = WorkflowRunner(

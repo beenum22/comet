@@ -429,7 +429,7 @@ class ConfigParser(object):
     # TODO: Upgrade for new formatting as well.
     def initialize_config(
             self,
-            strategy: str = None,
+            strategy: dict = {},
             workspace: str = None,
             repo: str = None,
             stable_branch: str = None,
@@ -454,29 +454,27 @@ class ConfigParser(object):
         """
         try:
             if not strategy:
-                self.config["strategy"] = input("Select workflow strategy [gitflow]: ") or "gitflow"
+                self.config["strategy"] = {}
+                self.config["strategy"]["type"] = input("Select workflow strategy [gitflow]: ") or "gitflow"
+                self.config["strategy"]["options"] = {}
+                if self.config["strategy"]["type"] == "gitflow":
+                    self.config["strategy"]["options"]["stable_branch"] = input(
+                        "Enter the name of the stable branch[master]: ") or "master"
+                    self.config["strategy"]["options"]["development_branch"] = input(
+                        "Enter the name of the development branch[develop]: ") or "develop"
+                    self.config["strategy"]["options"]["release_branch_prefix"] = input(
+                        "Enter the prefix for release branches[release]: ") or "release"
             else:
-                self.config["strategy"] = strategy
+                self.config["strategy"]["type"] = strategy
             if not workspace:
-                self.config["workspace"] = input("Enter the name of the SCM provider workspace/userspace [ngvoice]: ") or "ngvoice"
+                self.config["workspace"] = input(
+                    "Enter the name of the SCM provider workspace/userspace [beenum22]: ") or "beenum22"
             else:
                 self.config["workspace"] = workspace
             if not repo:
-                self.config["repo"] = input("Enter the name of the repository[ansible_k8s_ims]: ") or "ansible_k8s_ims"
+                self.config["repo"] = input("Enter the name of the repository[comet]: ") or "comet"
             else:
                 self.config["repo"] = repo
-            if not stable_branch:
-                self.config["stable_branch"] = input("Enter the name of the stable branch[master]: ") or "master"
-            else:
-                self.config["stable_branch"] = stable_branch
-            if not development_branch:
-                self.config["development_branch"] = input("Enter the name of the development branch[develop]: ") or "develop"
-            else:
-                self.config["development_branch"] = development_branch
-            if not release_branch_prefix:
-                self.config["release_branch_prefix"] = input("Enter the prefix for release branches[release]: ") or "release"
-            else:
-                self.config["release_branch_prefix"] = release_branch_prefix
             if not projects:
                 self.config["projects"] = []
                 while True:
@@ -506,7 +504,8 @@ class ConfigParser(object):
                         subprojects_info["version_regex"] = input("Enter the version regex for sub-project[]: ") or ""
                         subprojects_info["version_files"] = []
                         while True:
-                            add_version_files = input("Include a version file in the sub-project?(yes/no)[no]: ") or "no"
+                            add_version_files = input(
+                                "Include a version file in the sub-project?(yes/no)[no]: ") or "no"
                             if add_version_files not in ["yes", "no"]:
                                 continue
                             elif add_version_files == "yes":
@@ -522,6 +521,47 @@ class ConfigParser(object):
         except Exception as err:
             logger.debug(err)
             raise
+
+    @CometUtilities.unstable_function_warning
+    def migrate_deprecated_config(self) -> None:
+        """
+        Migrates deprecated Comet configuration format to the latest format.
+
+        :return: None
+        """
+        migration = False
+        if type(self._lookup_parameter_value("strategy")) is str:
+            logger.info(f"Migrating deprecated strategy parameter type from 'string' to a 'dictionary/map' "
+                        f"in Comet configuration")
+            strategy = self.config["strategy"]
+            self.config["strategy"] = {}
+            self.config["strategy"]["type"] = strategy
+            self.config["strategy"]["options"] = {}
+            self.config["strategy"]["options"]["stable_branch"] = self.config["stable_branch"]
+            self.config["strategy"]["options"]["development_branch"] = self.config["development_branch"]
+            self.config["strategy"]["options"]["release_branch_prefix"] = self.config["release_branch_prefix"]
+            self.config.pop("stable_branch", None)
+            self.config.pop("development_branch", None)
+            self.config.pop("release_branch_prefix", None)
+            migration = True
+        if self.has_deprecated_versioning_format():
+            logger.info(f"Migrating deprecated versioning format to newer versioning format in Comet "
+                        f"configuration")
+            projects = []
+            for project in self.config["projects"]:
+                project["version"] = project["dev_version"]
+                project.pop("dev_version", None)
+                project.pop("stable_version", None)
+                project["history"] = {}
+                project["history"]["next_release_type"] = "no_change"
+                project["history"]["latest_bump_commit_hash"] = None
+                projects.append(project)
+            self.config["projects"] = projects
+            migration = True
+        else:
+            logger.info(f"No deprecated configuration parameters found in Comet configuration. Skipping migration.")
+        if migration:
+            self._validate_config()
 
     @CometUtilities.deprecation_facilitation_warning
     def has_deprecated_versioning_format(self) -> bool:
