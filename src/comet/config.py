@@ -432,9 +432,6 @@ class ConfigParser(object):
             strategy: dict = {},
             workspace: str = None,
             repo: str = None,
-            stable_branch: str = None,
-            development_branch: str = None,
-            release_branch_prefix: str = None,
             projects: list = []
     ) -> None:
         """
@@ -444,9 +441,6 @@ class ConfigParser(object):
         :param strategy: Development strategy for Comet-managed repository
         :param workspace: Git Username/Workspace of Comet-managed repository
         :param repo: Git Repository name
-        :param stable_branch: Git stable branch name for Comet-managed repository
-        :param development_branch: Git development branch name for Comet-managed repository
-        :param release_branch_prefix: Git release branches prefix for Comet-managed repository
         :param projects: List of projects managed by Comet in the repository
         :return: None
         :raises AssertionError:
@@ -465,7 +459,7 @@ class ConfigParser(object):
                     self.config["strategy"]["options"]["release_branch_prefix"] = input(
                         "Enter the prefix for release branches[release]: ") or "release"
             else:
-                self.config["strategy"]["type"] = strategy
+                self.config["strategy"] = strategy
             if not workspace:
                 self.config["workspace"] = input(
                     "Enter the name of the SCM provider workspace/userspace [beenum22]: ") or "beenum22"
@@ -574,23 +568,6 @@ class ConfigParser(object):
         """
         for project in self.config["projects"]:
             if "dev_version" in project or "stable_version" in project:
-                return True
-        return False
-
-    @CometUtilities.unsupported_function_error
-    def has_deprecated_config_parameter(self, deprecated_param: str) -> bool:
-        """
-        Checks if the provided parameter :param:`deprecated_param` is configured in the Comet configuration file.
-
-        :param deprecated_param: Deprecated parameter to lookup in Comet configuration file
-        :return:
-            Returns `True` if the deprecated parameter exists in the Comet configuration or `False`
-            otherwise
-        """
-        if deprecated_param in self.config:
-            return True
-        for project in self.config["projects"]:
-            if deprecated_param in project:
                 return True
         return False
 
