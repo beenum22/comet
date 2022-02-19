@@ -135,12 +135,16 @@ class TestBaseConfig(object):
                 ]
             },
             "v1": {
-                "strategy": "gitflow",
+                "strategy": {
+                    "type": "gitflow",
+                    "options": {
+                        "stable_branch": "master",
+                        "development_branch": "develop",
+                        "release_branch_prefix": "release",
+                    }
+                },
                 "workspace": "beenum22",
                 "repo": "comet",
-                "stable_branch": "master",
-                "development_branch": "develop",
-                "release_branch_prefix": "release",
                 "projects": [
                     {
                         "path": TEST_REPO_DIRECTORY,
@@ -154,7 +158,14 @@ class TestBaseConfig(object):
                 ]
             },
             "invalid": {
-                "strategy_name": "gitflow",
+                "strategy": {
+                    "type": "gitflow",
+                    "options": {
+                        "stable_branch": "master",
+                        "development_branch": "develop",
+                        "release_branch_prefix": "release",
+                    }
+                },
                 "workspace_name": "beenum22",
                 "repository": "comet",
                 "master_branch": "master",
@@ -203,7 +214,14 @@ class TestBaseConfig(object):
                 ]
             },
             "v1": {
-                "strategy": "gitflow",
+                "strategy": {
+                    "type": "gitflow",
+                    "options": {
+                        "stable_branch": "master",
+                        "development_branch": "develop",
+                        "release_branch_prefix": "release",
+                    }
+                },
                 "workspace": "beenum22",
                 "repo": "comet",
                 "stable_branch": "master",
@@ -231,7 +249,14 @@ class TestBaseConfig(object):
                 ]
             },
             "invalid": {
-                "strategy_name": "gitflow",
+                "strategy": {
+                    "type": "gitflow",
+                    "parameters": {
+                        "stable_branch": "master",
+                        "development_branch": "develop",
+                        "release_branch_prefix": "release",
+                    }
+                },
                 "workspace_name": "beenum22",
                 "repository": "comet",
                 "master_branch": "master",

@@ -16,38 +16,15 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'ConfigParser.initialize_config' method")
 
-        configparser_v0 = ConfigParser(
-            config_path=f"test_comet.yml"
-        )
-
         configparser_v1 = ConfigParser(
             config_path=f"test_comet.yml"
-        )
-
-        configparser_v0.initialize_config(
-            strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["strategy"],
-            workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
-            repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
-            stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
-            development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
-            release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
-            projects=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["projects"]
         )
 
         configparser_v1.initialize_config(
             strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"],
             workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["workspace"],
             repo=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["repo"],
-            stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["stable_branch"],
-            development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["development_branch"],
-            release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["release_branch_prefix"],
             projects=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"]
-        )
-
-        logger.debug("Testing initialized test config with v0/old format")
-        self.assertEqual(
-            configparser_v0.config,
-            self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         )
 
         logger.debug("Testing initialized test config with v1/new format")
@@ -56,55 +33,17 @@ class ConfigParserTest(unittest.TestCase, TestBaseConfig):
             self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         )
 
-        logger.info("Testing initialized test config for unsupported values exception handling")
-        with self.assertRaises(Exception) as err:
-            configparser_v0.initialize_config(
-                strategy="tbd",
-                workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
-                repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
-                stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
-                development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
-                release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
-                projects=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["projects"]
-            )
-
         logger.debug("Testing initialized test config for invalid schema exception handling")
         with self.assertRaises(Exception) as err:
-            configparser_v0.initialize_config(
-                strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["strategy"],
-                workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["workspace"],
-                repo=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["repo"],
-                stable_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
-                development_branch=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
-                release_branch_prefix=self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"],
+            configparser_v1.initialize_config(
+                strategy=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"],
+                workspace=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["workspace"],
+                repo=self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["repo"],
                 projects=[{
                     "project_path": "test_project",
                     "project_version": "1.1.1",
                 }]
             )
-
-    def test_has_deprecated_config_parameter(self):
-        logger.info("Executing unit tests for 'ConfigParser.has_deprecated_config_parameter' method")
-
-        configparser_v0 = ConfigParser(
-            config_path=f"test_comet.yml"
-        )
-        configparser_v0.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-
-        configparser_v1 = ConfigParser(
-            config_path=f"test_comet.yml"
-        )
-        configparser_v1.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
-
-        logger.debug("Testing 'stable_version' deprecated parameter for v0/old config format")
-        self.assertTrue(
-            configparser_v0.has_deprecated_config_parameter("stable_version")
-        )
-
-        logger.debug("Testing 'stable_version' deprecated parameter for v1/new config format")
-        self.assertFalse(
-            configparser_v1.has_deprecated_config_parameter("stable_version")
-        )
 
     def test_get_projects(self):
         logger.info("Executing unit tests for 'ConfigParser.get_projects' method")
