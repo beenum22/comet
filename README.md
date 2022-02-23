@@ -1,3 +1,5 @@
+[![Default Branch](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml/badge.svg)](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml)
+
 # Comet
 
 ## Description
@@ -180,7 +182,7 @@ Comet `init` mode initializes the configuration in interactive mode and the foll
 ```log
 INFO - Initializing Comet configuration [./.comet.yml] using interactive mode
 Select workflow strategy [gitflow]:
-Enter the name of the SCM provider workspace/userspace [ngvoice]:
+Enter the name of the SCM provider workspace/userspace [beenum22]:
 Enter the name of the repository[ansible_k8s_ims]: dummy
 Enter the name of the stable branch[master]:
 Enter the name of the development branch[develop]:
