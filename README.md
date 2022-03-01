@@ -1,5 +1,5 @@
 [![Default Branch](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml/badge.svg)](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml)
-[Made with Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Comet
 
