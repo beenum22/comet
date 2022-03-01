@@ -1,6 +1,7 @@
 [![Default Build](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml/badge.svg)](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml)
 [![Stable Build](https://github.com/beenum22/comet/actions/workflows/stable-workflow.yml/badge.svg)](https://github.com/beenum22/comet/actions/workflows/stable-workflow.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Version (tag latest semver)](https://img.shields.io/docker/v/beenum22/comet/0.2.0)
 [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
 
 # Comet
