@@ -45,7 +45,9 @@ docker run --rm -ti beenum/comet:latest --version
 
 ## Usage
 
-First, you would need to configure Comet in your Git repository. Comet provides a specialized command argument `init` to
+***Important Note:** Currently, Comet should only be executed from the root directory of any repository*
+
+First, you would need to configure **Comet** in your Git repository. Comet provides a specialized command argument `init` to
 configure the configurations interactively and store them in the default Comet configuration file path `./.comet.yml`. 
 Execute the following command to start Comet configuration interactively in your Git repository:
 
@@ -53,8 +55,8 @@ Execute the following command to start Comet configuration interactively in your
 comet init
 ```
 
-***Important Note:** Currently, Comet should only be executed from the root directory of any repository*
-
+After Comet initialization, Comet offers multiple workflow scenarios that can be executed for the user Git repository. 
+These workflows include branch flow, stable release, release candidate creation, and development and stable branch sync.
 
 Execute the following `help` command to list down all the available options:
 ```bash
