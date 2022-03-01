@@ -45,7 +45,8 @@ docker run --rm -ti beenum/comet:latest --version
 
 ## Usage
 
-**Important Note: Currently, Comet tool should be executed from the root directory of any repository only**
+***Important Note:** Currently, Comet tool should be executed from the root directory of any repository only*
+
 
 Execute the following `help` command to list down all the available options:
 ```bash
