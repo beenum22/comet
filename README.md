@@ -45,7 +45,15 @@ docker run --rm -ti beenum/comet:latest --version
 
 ## Usage
 
-***Important Note:** Currently, Comet tool should be executed from the root directory of any repository only*
+First, you would need to configure Comet in your Git repository. Comet provides a specialized command argument `init` to
+configure the configurations interactively and store them in the default Comet configuration file path `./.comet.yml`. 
+Execute the following command to start Comet configuration interactively in your Git repository:
+
+```commandline
+comet init
+```
+
+***Important Note:** Currently, Comet should only be executed from the root directory of any repository*
 
 
 Execute the following `help` command to list down all the available options:
