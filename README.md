@@ -1,4 +1,5 @@
 [![Default Branch](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml/badge.svg)](https://github.com/beenum22/comet/actions/workflows/default-workflow.yml)
+[Made with Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
 # Comet
 
