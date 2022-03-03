@@ -488,15 +488,21 @@ class ConfigParser(object):
         try:
             if not strategy:
                 self.config["strategy"] = {}
-                self.config["strategy"]["type"] = input("Select workflow strategy [gitflow]: ") or "gitflow"
-                self.config["strategy"]["options"] = {}
-                if self.config["strategy"]["type"] == "gitflow":
-                    self.config["strategy"]["options"]["stable_branch"] = input(
+                self.config["strategy"]["development_model"] = {}
+                self.config["strategy"]["development_model"]["type"] = input(
+                    "Select workflow development model [gitflow]: ") or "gitflow"
+                self.config["strategy"]["development_model"]["options"] = {}
+                if self.config["strategy"]["development_model"]["type"] == "gitflow":
+                    self.config["strategy"]["development_model"]["options"]["stable_branch"] = input(
                         "Enter the name of the stable branch[master]: ") or "master"
-                    self.config["strategy"]["options"]["development_branch"] = input(
+                    self.config["strategy"]["development_model"]["options"]["development_branch"] = input(
                         "Enter the name of the development branch[develop]: ") or "develop"
-                    self.config["strategy"]["options"]["release_branch_prefix"] = input(
+                    self.config["strategy"]["development_model"]["options"]["release_branch_prefix"] = input(
                         "Enter the prefix for release branches[release]: ") or "release"
+                self.config["strategy"]["commits_format"] = {}
+                self.config["strategy"]["commits_format"]["type"] = input(
+                    "Select commit messages format type [conventional_commits]: ") or "conventional_commits"
+                self.config["strategy"]["commits_format"]["options"] = {}
             else:
                 self.config["strategy"] = strategy
             if not workspace:
