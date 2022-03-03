@@ -1,31 +1,4 @@
 ```yaml
-#----------------------------------------------------------------------------------------------------------------------#
-# Important Notes:
-#----------------------------------------------------------------------------------------------------------------------#
-#   - Release pipelines should only be executed by the repository administrators
-#   - All commits should follow conventional commits specification (https://www.conventionalcommits.org/) if
-#     'auto' release option is used
-#   - Feature/bugfix branches should be merged to development branch (develop) using squash merge strategy
-#   - Hotfix branches should be merged to stable branch (master) using squash merge strategy
-#   - Release branches should NOT be merged to stable branch (master) using squash merge strategy
-#   - Stable branch should NOT be merged to development branch (develop) using squash merge strategy
-#   - Branch permissions should be disabled for stable (master) and development (develop) branches
-#----------------------------------------------------------------------------------------------------------------------#
-# Required Bitbucket Pipelines Global environment variables
-#----------------------------------------------------------------------------------------------------------------------#
-# - BITBUCKET_USERNAME
-#     Description:
-#       Sets Bitbucket username.
-#       e.g. muneeb-ahmad
-# - BITBUCKET_APP_PASSWORD
-#     Description:
-#       Sets Bitbucket App password with admin repo privileges.
-# - DOCKER_HUB_USERNAME
-#     Description:
-#       Sets ng-voice Docker registry username.
-# - DOCKER_HUB_PASSWORD
-#     Description:
-#       Sets ng-voice Docker registry password.
 # -----
 image: atlassian/default-image:2
 
@@ -43,12 +16,6 @@ definitions:
           -
         artifacts:
           - shared_vars.sh
-
-    - step: &lint-last-message
-        name: Lint Commit Message
-        image: gtramontina/commitlint:8.3.5
-        script:
-          - commitlint --config .commitlint.js --from HEAD~1
 
     - step: &push-comet-upgrades
         name: Push Comet Upgrades

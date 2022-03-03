@@ -1,13 +1,20 @@
 # Usage
 ## Interactive Initialization
-## Workflows
+## Supported Development Models
+## Available Workflows
+
 ***Warning:** Some supported workflows are dependent on specific branching models.*
+
+### Stable Release
+### Development Version
+### Release Candidate
+### Stable and Development Streams Sync (Gitflow specific)
 
 ## Push to Remote Repository
 
 ## Upgrade Deprecated Configuration
-Some major changes/improvements has been made in the configuration parameters format resulting in deprecation of the 
-old configuration format. The changes include refactoring the versioning related parameters, and replacing `dev_version`
+Some major changes/improvements has been made in the configuration parameters format resulting in deprecation of some 
+configuration parameters. The changes include refactoring the versioning related parameters, and replacing `dev_version`
 and `stable_version` parameters with newer `version` and `history` parameters. The new `history` parameter is included 
 to keep track of the version changes and has additional `next_release_type` and `latest_bump_commit_hash` parameters to 
 facilitate the automated smart versioning of the project/s in your repository. 
