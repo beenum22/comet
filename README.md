@@ -130,58 +130,8 @@ Workflow:
 ## Newsfeed
 ### Already using Comet? Make sure you are not using the deprecated configuration
 Comet includes major changes related to the configuration file format where multiple configuration parameters have been
-replaced or removed. Consult the [configuration migration](./docs/config_migration.md) guide if you have already been using Comet in your project 
-repository.
-
-Execute the following `help` command to list down all the available options:
-```bash
-comet --help
-```
-
-```console
-usage: comet [-h] [--version] [--projects] [--project-version PROJECT_VERSION [PROJECT_VERSION ...]] [--project-dev-version PROJECT_DEV_VERSION [PROJECT_DEV_VERSION ...]]
-             [--project-stable-version PROJECT_STABLE_VERSION [PROJECT_STABLE_VERSION ...]] [--debug | --suppress]
-             [--run {init,branch-flow,release-candidate,release,sync,migrate-config}] [-s SCM_PROVIDER] [-c CONNECTION_TYPE] [-u USERNAME] [-p PASSWORD]
-             [-spkp SSH_PRIVATE_KEY_PATH] [-rlp {./}] [-pc PROJECT_CONFIG] [--push]
-             [{init,branch-flow,release-candidate,release,sync,migrate-config}]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --debug               Enable debug mode
-  --suppress            Suppress banner and logging
-
-Versioning:
-  Version related operations
-
-  --version             Print Comet version
-  --projects            Print all the project names
-  --project-version PROJECT_VERSION [PROJECT_VERSION ...]
-                        Print project version
-
-Workflow:
-  Workflows related operations
-
-  {init,branch-flow,release-candidate,release,sync,migrate-config}
-                        Comet action to execute. init: Initialize Comet repository configuration if it does not exist (Interactive mode), branch-flow: Upgrade versioning on
-                        Git branches for Comet managed project/s, release-candidate: Create Release candidate branch for Comet managed project/s, release: Release a new
-                        version in stable branch for Comet managed project/s, sync: Synchronizes the development branch with stable branch, migrate-config: Upgrades the
-                        deprecated Comet configuration format to the newer format
-  -s SCM_PROVIDER, --scm-provider SCM_PROVIDER
-                        Git SCM provider name
-  -c CONNECTION_TYPE, --connection-type CONNECTION_TYPE
-                        Git SCM provider remote connection type
-  -u USERNAME, --username USERNAME
-                        Git username
-  -p PASSWORD, --password PASSWORD
-                        Git password
-  -spkp SSH_PRIVATE_KEY_PATH, --ssh-private-key-path SSH_PRIVATE_KEY_PATH
-                        Git SSH local private key path
-  -rlp {./}, --repo-local-path {./}
-                        Git Repository local path (Support for running Comet for any path other than './' is disabled for now)
-  -pc PROJECT_CONFIG, --project-config PROJECT_CONFIG
-                        Git Project configuration file path
-  --push                Push changes to remote
-```
+replaced or removed. Consult the [configuration migration](./docs/usage.md#Upgrade-Deprecated-Configuration) guide if 
+you have already been using Comet in your project repository.
 
 The main functionality of Comet is triggered using the `--run` flag that supports `init`, `branch-flow`,
 `release-candidate` and `release` execution work-flows.
