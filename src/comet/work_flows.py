@@ -620,9 +620,9 @@ class GitFlow(WorkflowBase):
         """
         try:
             self.source_branch = self.scm.get_active_branch()
-            self.stable_branch = self.project_config.get_strategy_options()["stable_branch"]
-            self.development_branch = self.project_config.get_strategy_options()["development_branch"]
-            self.release_branch_prefix = self.project_config.get_strategy_options()["release_branch_prefix"]
+            self.stable_branch = self.project_config.get_development_model_options()["stable_branch"]
+            self.development_branch = self.project_config.get_development_model_options()["development_branch"]
+            self.release_branch_prefix = self.project_config.get_development_model_options()["release_branch_prefix"]
             if (
                     not self.scm.has_local_branch(self.source_branch) or
                     not self.scm.has_local_branch(self.stable_branch) or
@@ -1575,7 +1575,7 @@ class WorkflowRunner(object):
         """
         project_config = ConfigParser(config_path=self.project_config_path)
         project_config.read_config()
-        return project_config.get_strategy_type()
+        return project_config.get_development_model_type()
 
     def prepare_workflow(self):
         """
@@ -1583,7 +1583,8 @@ class WorkflowRunner(object):
 
         :return: None
         """
-        if self.get_config_strategy_type() == "gitflow":
+        development_model = self.get_config_strategy_type()
+        if development_model == "gitflow":
             self.runner = GitFlow(
                 scm_provider=self.scm_provider,
                 connection_type=self.connection_type,
@@ -1594,7 +1595,7 @@ class WorkflowRunner(object):
                 project_config_path=self.project_config_path,
                 push_changes=self.push_changes
             )
-        elif self.get_config_strategy_type() == "tbd":
+        elif development_model == "tbd":
             raise Exception(f"Trunk Based Development (tbd) strategy is currently not supported by Comet. Support for "
                             f"TBD strategy is in the roadmap and will be added in future releases")
 
@@ -1608,7 +1609,7 @@ class WorkflowRunner(object):
             #     project_config_path=self.project_config_path,
             #     push_changes=self.push_changes
             # )
-        elif self.get_config_strategy_type() == "custom":
+        elif development_model == "custom":
             raise Exception(f"Custom strategy is currently not supported by Comet. Support for "
                             f"Custom strategy is in the roadmap and will be added in future releases")
 

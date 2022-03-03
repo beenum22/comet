@@ -50,6 +50,7 @@ class ConfigParser(object):
     ]
 
     SUPPORTED_CONFIG_SCHEMA: dict = {
+        "additionalProperties": False,
         "type": "object",
         "required": [
             "strategy",
@@ -87,55 +88,92 @@ class ConfigParser(object):
         "else": {
             "properties": {
                 "strategy": {
+                    "additionalProperties": False,
                     "properties": {
-                        "type": {
-                            "type": "string",
-                            "enum": [
-                                "gitflow",
-                                "tbd",
-                                "custom"
-                            ]
-                        },
-                        "options": {
-                            "type": [
-                                "object",
-                                "null"
-                            ],
+                        "development_model": {
+                            "additionalProperties": False,
+                            "type": "object",
                             "properties": {
-                                "stable_branch": {
-                                    "type": "string"
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "gitflow",
+                                        "tbd",
+                                        "custom"
+                                    ]
                                 },
-                                "development_branch": {
-                                    "type": "string"
-                                },
-                                "release_branch_prefix": {
-                                    "type": "string"
+                                "options": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "stable_branch": {
+                                            "type": "string"
+                                        },
+                                        "development_branch": {
+                                            "type": "string"
+                                        },
+                                        "release_branch_prefix": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ],
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "gitflow"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "required": [
+                                    "options"
+                                ],
+                                "properties": {
+                                    "options": {
+                                        "type": "object",
+                                        "required": [
+                                            "stable_branch",
+                                            "development_branch",
+                                            "release_branch_prefix",
+                                        ]
+                                    }
                                 }
                             }
+                        },
+                        "commits_format": {
+                            "additionalProperties": False,
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "conventional_commits",
+                                        "custom"
+                                    ]
+                                },
+                                "options": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ]
                         }
                     },
-                    "if": {
-                        "properties": {
-                            "type": {
-                                "const": "gitflow"
-                            }
-                        }
-                    },
-                    "then": {
-                        "required": [
-                            "options"
-                        ],
-                        "properties": {
-                            "options": {
-                                "type": "object",
-                                "required": [
-                                    "stable_branch",
-                                    "development_branch",
-                                    "release_branch_prefix",
-                                ]
-                            }
-                        }
-                    }
+                    "required": [
+                        "development_model",
+                        "commits_format"
+                    ]
                 }
             }
         },
@@ -184,6 +222,7 @@ class ConfigParser(object):
                         "path",
                         "version_files"
                     ],
+                    "additionalProperties": False,
                     "properties": {
                         "version": {
                             "type": "string"
@@ -662,33 +701,33 @@ class ConfigParser(object):
                             f"Comet configuration file")
 
     @CometUtilities.unstable_function_warning
-    def get_strategy_type(self) -> str:
+    def get_development_model_type(self) -> str:
         """
-        Fetches the configured strategy name.
+        Fetches the configured development model name.
 
-        :return: Configured strategy name
+        :return: Configured development model name
         """
         if type(self._lookup_parameter_value("strategy")) is str:
             return self._lookup_parameter_value("strategy")
-        return self._lookup_parameter_value("strategy")["type"]
+        return self._lookup_parameter_value("strategy")["development_model"]["type"]
 
     @CometUtilities.unstable_function_warning
-    def get_strategy_options(self) -> dict:
+    def get_development_model_options(self) -> dict:
         """
-        Fetches the configured strategy specific options map.
+        Fetches the configured development model options map.
 
-        :return: Strategy specific configured options
+        :return: Configured development model options
         """
         options = {}
         if type(self._lookup_parameter_value("strategy")) is str:
             with CometDeprecationContext(
-                f"Setting strategy options for the deprecated 'strategy' parameter type"
+                f"Setting options for the deprecated 'strategy' parameter type"
             ):
                 options["stable_branch"] = self._lookup_parameter_value("stable_branch")
                 options["development_branch"] = self._lookup_parameter_value("development_branch")
                 options["release_branch_prefix"] = self._lookup_parameter_value("release_branch_prefix")
         else:
-            options = self._lookup_parameter_value("strategy")["options"]
+            options = self._lookup_parameter_value("strategy")["development_model"]["options"]
         return options
 
     @CometUtilities.deprecated_arguments_warning("version_type")
