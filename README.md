@@ -47,19 +47,35 @@ docker run --rm -ti beenum/comet:latest --version
 
 ***Important Note:** Currently, Comet should only be executed from the root directory of any repository*
 
-First, you would need to configure **Comet** in your Git repository. Comet provides a specialized command argument `init` to
-configure the configurations interactively and store them in the default Comet configuration file path `./.comet.yml`. 
+First, you would need to configure **Comet** in your Git repository. Comet provides a specialized command argument `init` 
+to configure the configurations interactively and store them in the default Comet configuration file path `./.comet.yml`. 
 Execute the following command to start Comet configuration interactively in your Git repository:
 
 ```commandline
 comet init
 ```
 
+Checkout the guidelines provided in [detailed Comet usage](./docs/usage.md#Interactive-Initialization) to understand 
+the interactive initialization view and available options.
+
 After Comet initialization, Comet offers multiple workflow scenarios that can be executed for the project/s repository. 
 These workflows include **branch specific flow**, **stable version release**, **release candidate creation**, and 
-**development and stable branch synchronization**.
+**development and stable branch synchronization**. Checkout the guidelines provided in
+[detailed Comet usage](./docs/usage.md#Workflows) to understand and execute different provided workflows in your 
+project/s repository. Sample Comet available workflows are provided below: 
 
-***Warning:** Some supported workflows are dependent on specific branching models.*
+```commandline
+comet branch-flow
+comet release
+comet release-candidate
+comet sync
+```
+
+Comet also supports pushing changes to the remote Git repository using `--push` flag/arugment. However, it is dependent 
+on information provided using `--connection-type`, `--ssh-private-key-path` and `--scm-provider` arguments to configure
+and push Comet made changes to the remote project/s repository. Checkout the guidelines provided in 
+[detailed Comet usage](./docs/usage.md#Push-to-Remote-Repository) to successfully push Comet changes to your remote 
+project/s repository.
 
 You can execute the `comet --help` command to print out the general Comet usage:
 ```bash
