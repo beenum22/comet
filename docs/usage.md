@@ -11,6 +11,21 @@
 ### Stable and Development Streams Sync (Gitflow specific)
 
 ## Push to Remote Repository
+Comet supports pushing all the changes to the remote project/s repository using a `--push` flag. To successfully make 
+changes in the remote repository, it requires the name of Source Code Management (SCM) provider, Git connection type, and 
+SSH private key local file path or username and password depending on the type Git connection type specified. This 
+information is used to compute remote repository URL and verify connectivity to the SCM provider using the computed 
+URL and provided credentials. The required Comet arguments are `--connection-type`, `--ssh-private-key-path`, 
+`--username`, `--password` and `--scm-provider`.
+
+Sample Comet commands to execute any workflow and push changes to the remote repository using 
+SSH and HTTPS Git connection types are provided below in order:
+```commandline
+comet release --scm-provider github --connection-type ssh --ssh-private-key-path ~/.ssh/id_rsa --push
+```
+```commandline
+comet release --scm-provider github --connection-type https --username dummy --password dummy --push
+```
 
 ## Upgrade Deprecated Configuration
 Some major changes/improvements has been made in the configuration parameters format resulting in deprecation of some 
