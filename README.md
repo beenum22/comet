@@ -133,26 +133,6 @@ Comet includes major changes related to the configuration file format where mult
 replaced or removed. Consult the [configuration migration](./docs/usage.md#Upgrade-Deprecated-Configuration) guide if 
 you have already been using Comet in your project repository.
 
-The main functionality of Comet is triggered using the `--run` flag that supports `init`, `branch-flow`,
-`release-candidate` and `release` execution work-flows.
-
-Sample command to initialize Comet for a new project/repository in interactive mode:
-```bash
-comet --run --init
-```
-
-Example command to execute the branch-flow and push changes to the remote/upstream repository
-using HTTPs Git connection type:
-```bash
-comet --run branch-flow --scm-provider bitbucket --connection-type https --username muneeb-ahmad --password dummy --push
-```
-
-Example command to execute the branch-flow and push changes to the remote/upstream repository using SSH Git
-connection type:
-```bash
-comet --run branch-flow --scm-provider bitbucket --connection-type ssh --ssh-private-key-path ~/.ssh/id_rsa --push
-```
-
 ## Contributing
 n/a
 

@@ -1,9 +1,102 @@
 # Usage
+## Configuration Reference
+### `strategy`
+Specifies all the strategic decisions in Comet. This parameter is intended to contain all the current/future 
+automated release strategies.
+#### `commits_format`
+Specifies all the information related to commit messaging format/strategy used in the project/s repository.
+##### `type`
+Specifies the type of commit messaging format to use for automated release. Currently, Conventional Commits Specification 
+is supported only by setting it to `conventional_commits`. Future releases would include a user defined commit 
+messaging format by setting it to `custom`.
+##### `options`
+Specifies additional configuration required for the type of commit messaging format selected. `conventional_commits` 
+doesn't require any additional options and `options` field can be ignored for it.
+#### `development_model`
+Specifies all the information related to development/branching model configured for the project/s repository.
+##### `type`
+Specifies the type of development/branching model to use for automated release. Currently, Gitflow-based and Trunk-based 
+Development (TBD) development models are supported by setting it to `gitflow` and `tbd` respectively. Future releases 
+would include a user defined development model/workflow by setting it to `custom`.
+##### `options`
+Specifies additional configuration required for the type of development/branching model selected. `gitflow` requires
+stable and development branches' names by setting `stable_branch` and `development_branch` fields. `gitflow` also 
+requires prefix for release candidate branches by setting `release_branch_prefix`. `tbd` doesn't require any additional 
+options and `options` field can be ignored for it.
+### `workspace`
+Specifies the Git username/workspace name where the repository with target project/s is present. 
+### `repo`
+Specifies the Git repository name where the target project/s for automated release are present.
+### `projects`
+Specifies a list of mappings with all the target project/s present in the Git repository that requires automated 
+release.
+#### `version`
+Specifies the current/latest version for the project.
+#### `history`
+Specifies the historic information related to project versioning.
+##### `next_release_type`
+Specifies the next possible stable release type according to semantic versioning. This field is only intended to be 
+used by the Comet tool itself. **Do not modify**.
+##### `latest_bump_commit_hash`
+Specifies the commit hash for the last version-able change impacting the major, minor or patch parts in a semantic 
+version. This field is only intended to be used by the Comet tool itself. **Do not modify**.
+#### `version_files`
+Specifies a list of version file/s where the version string needs to be updated.
+#### `version_regex`
+Specifies the regular expression pattern to lookup for version strings in the specified version file/s and replace 
+them. If left empty, it will look for the exact past version and replace it with the new version in the specified 
+version file/s. `version_regex` is a specialized field and can be used in complicated scenarios where the version strings 
+in version file/s cannot be updated by simply replacing past version with a new version. A regular expression can be 
+specified here to lookup for version string patterns and replace them with a new version. However, if the user needs 
+to find the areas using regex capturing groups after which the version string must be updated then this field has a 
+limitation of at most one regex capturing group.
+
+For example, we have the following value set:
+```yaml
+version_regex: '(Version: ).*'
+```
+Let's assume our new version is `1.1.1`. This regular expression would look for all strings in a line after `Version: ` 
+string in version file/s and replace it with `Version: 1.1.1`
+
+If the user provides two capturing groups, for example `(Version: )(Test).*`, Comet will throw an error.
+
 ## Interactive Initialization
+Comet provides an interactive mode to configure your project/s repository with Comet configuration. This step is a 
+pre-requisite to all the Comet provided operations. To manage automated release cycle in your repository using **Comet**,
+Trigger the initialization by executing the following at the root path in your project/s repository:
+```commandline
+comet init
+```
+
+User will be prompted with an interactive mode to configure/provide all the relevant information required by the Comet. 
+After successfully initializing Comet in your project/s repository, a configuration file, `./.comet.yml`, would be added 
+on the root path of your repository. This configuration will be used by Comet in future as reference configuration file 
+and to keep track of all release changes. 
+
 ## Supported Development Models
 ## Available Workflows
 
 ***Warning:** Some supported workflows are dependent on specific branching models.*
+
+The main functionality of Comet is triggered using the `--run` flag that supports `init`, `branch-flow`,
+`release-candidate` and `release` execution work-flows.
+
+Sample command to initialize Comet for a new project/repository in interactive mode:
+```bash
+comet --run --init
+```
+
+Example command to execute the branch-flow and push changes to the remote/upstream repository
+using HTTPs Git connection type:
+```bash
+comet --run branch-flow --scm-provider bitbucket --connection-type https --username muneeb-ahmad --password dummy --push
+```
+
+Example command to execute the branch-flow and push changes to the remote/upstream repository using SSH Git
+connection type:
+```bash
+comet --run branch-flow --scm-provider bitbucket --connection-type ssh --ssh-private-key-path ~/.ssh/id_rsa --push
+```
 
 ### Stable Release
 ### Development Version
