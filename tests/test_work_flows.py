@@ -233,7 +233,7 @@ class GitFlowTestV0(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v0/deprecated config format and source branch "
                      "set to development branch")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser().get_strategy_options.return_value = {
+        mock_configparser().get_development_model_options.return_value = {
                 "stable_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
                 "development_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
                 "release_branch_prefix": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"]
@@ -374,7 +374,7 @@ class GitFlowTestV0(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
 
         logger.debug("Initializing GitFlow object for mono repo with v0/deprecated config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser().get_strategy_options.return_value = {
+        mock_configparser().get_development_model_options.return_value = {
             "stable_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
             "development_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
             "release_branch_prefix": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"]
@@ -447,7 +447,7 @@ class GitFlowTestV0(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
 
         logger.debug("Initializing GitFlow object for multi repo with v0/deprecated config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["multi"]["v0"]
-        mock_configparser().get_strategy_options.return_value = {
+        mock_configparser().get_development_model_options.return_value = {
             "stable_branch": self.TEST_GITFLOW_CONFIGS["multi"]["v0"]["stable_branch"],
             "development_branch": self.TEST_GITFLOW_CONFIGS["multi"]["v0"]["development_branch"],
             "release_branch_prefix": self.TEST_GITFLOW_CONFIGS["multi"]["v0"]["release_branch_prefix"]
@@ -530,7 +530,7 @@ class GitFlowTestV0(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v0/deprecated config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
         # mock_scm().find_new_commits.side_effect = GitFlowTest.side_effect_find_new_commits
-        mock_configparser().get_strategy_options.return_value = {
+        mock_configparser().get_development_model_options.return_value = {
             "stable_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["stable_branch"],
             "development_branch": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["development_branch"],
             "release_branch_prefix": self.TEST_GITFLOW_CONFIGS["mono"]["v0"]["release_branch_prefix"]
@@ -679,7 +679,7 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
 
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"]
 
         gitflow_mono_v1 = GitFlow(
             scm_provider=self.TEST_GIT_CONFIG["scm_providers"][0],
@@ -813,10 +813,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format and source branch "
                      "set to development branch")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"]
         gitflow_mono_v1 = GitFlow(
             scm_provider=self.TEST_GIT_CONFIG["scm_providers"][0],
             connection_type=self.TEST_GIT_CONFIG["connection_types"][0],
@@ -847,10 +847,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format and source branch "
                      "set to stable branch")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["stable_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["stable_branch"]
         gitflow_mono_v1 = GitFlow(
             scm_provider=self.TEST_GIT_CONFIG["scm_providers"][0],
             connection_type=self.TEST_GIT_CONFIG["connection_types"][0],
@@ -881,10 +881,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format and source branch "
                      "set to release branch")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["release_branch_prefix"]}/test'
+            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["release_branch_prefix"]}/test'
         gitflow_mono_v1 = GitFlow(
             scm_provider=self.TEST_GIT_CONFIG["scm_providers"][0],
             connection_type=self.TEST_GIT_CONFIG["connection_types"][0],
@@ -915,8 +915,8 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format and source branch "
                      "set to any feature/bugfix branch")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = "feature/test"
         gitflow_mono_v1 = GitFlow(
             scm_provider=self.TEST_GIT_CONFIG["scm_providers"][0],
@@ -963,10 +963,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         mock_configparser().has_deprecated_versioning_format.return_value = False
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"]
         mock_scm().find_new_commits.side_effect = GitFlowTestV1.side_effect_find_new_commits
         mock_semver().get_version.return_value = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["version"]
         mock_semver().get_final_version.return_value = \
@@ -988,14 +988,14 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         self.assertTrue(
             gitflow_mono_v1.release_project_version(
                 self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["path"],
-                self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"]
+                self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"]
             )
         )
         mock_semver().get_version.assert_called_once()
         mock_semver().get_final_version.assert_called_once()
         mock_scm().find_new_commits.assert_called_with(
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"],
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["stable_branch"],
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"],
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["stable_branch"],
             self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["path"]
         )
         mock_semver().update_version_files.assert_called_once_with(
@@ -1023,10 +1023,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
 
         logger.debug("Initializing GitFlow object for multi repo with v1/new config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["multi"]["v1"]
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"]
         mock_semver().get_final_version.side_effect = [
             project["version"].split("-")[0] for project in self.TEST_GITFLOW_CONFIGS["multi"]["v1"]["projects"]
         ]
@@ -1104,8 +1104,8 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         logger.debug("Initializing GitFlow object for mono repo with v1/new config format")
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         mock_configparser().has_deprecated_versioning_format.return_value = False
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().has_local_branch.side_effect = GitFlowTestV1.side_effect_release_branch
         mock_scm().has_remote_branch.side_effect = GitFlowTestV1.side_effect_release_branch
         mock_configparser().get_project_version.return_value = \
@@ -1136,11 +1136,11 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         )
         mock_semver().get_final_version.assert_called_once()
         mock_scm().has_local_branch.assert_called_with(
-            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["release_branch_prefix"]}/'
+            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["release_branch_prefix"]}/'
             f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["version"].split("-")[0]}'
         )
         mock_scm().add_branch.assert_called_once_with(
-            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["release_branch_prefix"]}/'
+            f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["release_branch_prefix"]}/'
             f'{self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["version"].split("-")[0]}',
             checkout=True
         )
@@ -1241,10 +1241,10 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
             f'{int(self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["version"].split("-")[0].split(".")[-1]) + 1}'
         mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v1"]
         mock_configparser().has_deprecated_versioning_format.return_value = False
-        mock_configparser().get_strategy_options.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]
+        mock_configparser().get_development_model_options.return_value = \
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]
         mock_scm().get_active_branch.return_value = \
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["stable_branch"]
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["stable_branch"]
         mock_scm().find_new_commits.return_value = ["fix_hash"]
         mock_scm().get_commit_message.side_effect = GitFlowTestV1.side_effect_get_commit_message
         mock_scm().get_commit_hexsha.return_value = "fix_hash"
@@ -1273,8 +1273,8 @@ class GitFlowTestV1(unittest.TestCase, TestBaseConfig, TestBaseCommitMessages):
         )
         mock_lookup_commits.assert_called_once_with(
             self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["projects"][0]["path"],
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["stable_branch"],
-            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["options"]["development_branch"],
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["stable_branch"],
+            self.TEST_GITFLOW_CONFIGS["mono"]["v1"]["strategy"]["development_model"]["options"]["development_branch"],
             filter_commits=True,
             check_history=True
         )

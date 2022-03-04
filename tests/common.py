@@ -136,11 +136,17 @@ class TestBaseConfig(object):
             },
             "v1": {
                 "strategy": {
-                    "type": "gitflow",
-                    "options": {
-                        "stable_branch": "master",
-                        "development_branch": "develop",
-                        "release_branch_prefix": "release",
+                    "commits_format": {
+                        "type": "conventional_commits",
+                        "options": {}
+                    },
+                    "development_model": {
+                        "type": "gitflow",
+                        "options": {
+                            "stable_branch": "master",
+                            "development_branch": "develop",
+                            "release_branch_prefix": "release",
+                        }
                     }
                 },
                 "workspace": "beenum22",
@@ -215,11 +221,17 @@ class TestBaseConfig(object):
             },
             "v1": {
                 "strategy": {
-                    "type": "gitflow",
-                    "options": {
-                        "stable_branch": "master",
-                        "development_branch": "develop",
-                        "release_branch_prefix": "release",
+                    "commits_format": {
+                        "type": "conventional_commits",
+                        "options": {}
+                    },
+                    "development_model": {
+                        "type": "gitflow",
+                        "options": {
+                            "stable_branch": "master",
+                            "development_branch": "develop",
+                            "release_branch_prefix": "release",
+                        }
                     }
                 },
                 "workspace": "beenum22",
