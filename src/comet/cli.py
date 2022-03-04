@@ -243,13 +243,15 @@ def main() -> None:
         flow_group.add_argument(
             "-s",
             "--scm-provider",
-            default="bitbucket",
+            default=None,
+            choices=["github", "bitbucket"],
             help="Git SCM provider name"
             )
         flow_group.add_argument(
             "-c",
             "--connection-type",
-            default="ssh",
+            default=None,
+            choices=["ssh", "https"],
             help="Git SCM provider remote connection type"
             )
         flow_group.add_argument(

@@ -142,20 +142,17 @@ class Scm(object):
         :return: None
         """
         # TODO: Add check to make sure no file is changed in the local repo
-        assert self.connection_type in self.SUPPORTED_SCM_CONNECTION_TYPES, \
-            "Invalid connection type [%s] specified! Supported values are [%s]" % (
-                self.connection_type,
-                ",".join(self.SUPPORTED_SCM_CONNECTION_TYPES)
-            )
+        if self.configure_remote:
+            assert self.connection_type in self.SUPPORTED_SCM_CONNECTION_TYPES, \
+                f"Invalid connection type {self.connection_type} specified! Supported values are " \
+                f"{','.join(self.SUPPORTED_SCM_CONNECTION_TYPES)}"
+            assert self.scm_provider in list(self.SUPPORTED_SCM_PROVIDERS.keys()), \
+                f"Invalid SCM provider {self.scm_provider} specified! Supported values are " \
+                f"{','.join(list(self.SUPPORTED_SCM_PROVIDERS.keys()))}"
+            if self.connection_type == "ssh":
+                self._validate_ssh_private_key()
         assert self.workspace, "Git workspace/username [workspace] variable not provided!"
         assert self.repo, "Git repository name [repo] variable not provided!"
-        assert self.scm_provider in list(self.SUPPORTED_SCM_PROVIDERS.keys()), \
-            "Invalid SCM provider [%s] specified! Supported values are [%s]" % (
-                self.scm_provider,
-                ",".join(list(self.SUPPORTED_SCM_PROVIDERS.keys()))
-            )
-        if self.connection_type == "ssh" and self.configure_remote:
-            self._validate_ssh_private_key()
         self.repo_local_path = os.path.abspath(self.repo_local_path)
 
     def _validate_ssh_private_key(self) -> None:
