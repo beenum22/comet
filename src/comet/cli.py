@@ -206,7 +206,7 @@ def main() -> None:
             nargs="?",
             choices=[
                 "init",
-                "branch-flow",
+                "development",
                 "release-candidate",
                 "release",
                 "sync",
@@ -214,7 +214,7 @@ def main() -> None:
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
-                 "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
+                 "development: Upgrade versioning on Git branches for Comet managed project/s, "
                  "release-candidate: Create Release candidate branch for Comet managed project/s, "
                  "release: Release a new version in stable branch for Comet managed project/s, "
                  "sync: Synchronizes the development branch with stable branch, "
@@ -346,7 +346,7 @@ def main() -> None:
             project_config.migrate_deprecated_config()
             project_config.write_config()
         elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
-              args.workflow in ["sync", "branch-flow", "release-candidate", "release"]):
+              args.workflow in ["sync", "development", "release-candidate", "release"]):
             workflow = WorkflowRunner(
                 scm_provider=args.scm_provider,
                 connection_type=args.connection_type,
@@ -357,7 +357,7 @@ def main() -> None:
                 project_config_path=args.project_config,
                 push_changes=args.push
             )
-        if args.run == "branch-flow" or args.workflow == "branch-flow":
+        if args.run == "branch-flow" or args.workflow == "development":
             workflow.run_branch_flow()
         elif args.run == "release-candidate" or args.workflow == "release-candidate":
             workflow.run_release_candidate_flow()
