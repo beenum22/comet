@@ -11,9 +11,9 @@ In semantic versioning, we have three main types of versions; `major`, `minor` a
 to map the type of commit messages with the type of versioning decision to take. Mapping between the semantic versioning 
 and the conventional commits specification is given below:
 
-`feat!` type or `BREAKING CHANGE` identifier in the commit message would be considered a *Major* change.
-`feat` type commit message would be considered a *Minor* change.
-`fix`, `refactor` and `perf` types commit messages would be considered a *Patch* change.
+* `feat!` type or `BREAKING CHANGE` identifier in the commit message would be considered a *Major* change.
+* `feat` type commit message would be considered a *Minor* change.
+* `fix`, `refactor` and `perf` types commit messages would be considered a *Patch* change.
 
 This commit message strategy is the default strategy used by the Comet and is currently the only supported in Comet.
 
