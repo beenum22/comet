@@ -111,11 +111,12 @@ comet release
 ```
 
 #### Development Flow (`developemnt`)
-This workflow is intended to upgrade the version on the main development branch, release candidate branches or any 
-other feature/user branches. On the development branch, this workflow computes the next possible stable version 
-intelligently by the parsing messages of the new development commits with respect to the stable branch. On the release 
-candidate branches, it simply increments the build number for the version. For rest of the user branches including the 
-feature branches, this workflow upgrades the version with an appended last commit hash.
+This workflow is intended to upgrade the version after changes on the main development branch, stable branch, release 
+candidate branches or any other feature/user branches. On the development branch, this workflow computes the next 
+possible stable version intelligently by the parsing messages of the new development commits with respect to the stable 
+branch. On the release candidate branches, it simply increments the build number for the version. For rest of the user 
+branches including the feature branches, this workflow upgrades the version with an appended last commit hash. Lastly, 
+on the stable branch, only patch changes are allowed resulting in only patch upgrades.
 
 Sample:
 ```commandline
