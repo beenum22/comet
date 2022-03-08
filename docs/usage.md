@@ -1,4 +1,22 @@
 # User Guide
+## Supported Development Models
+### Gitflow
+### Trunk-based Development (TBD)
+
+## Supported Commit Message Strategies
+### Conventional Commits
+Comet includes an implementation of [conventional commits specification](https://www.conventionalcommits.org/en/v1.0.0/) 
+that has a defined process to parse the commit messages and take versioning decisions based on the type of commits. 
+In semantic versioning, we have three main types of versions; `major`, `minor` and `patch`. Comet has defined rules  
+to map the type of commit messages with the type of versioning decision to take. Mapping between the semantic versioning 
+and the conventional commits specification is given below:
+
+`feat!` type or `BREAKING CHANGE` identifier in the commit message would be considered a *Major* change.
+`feat` type commit message would be considered a *Minor* change.
+`fix`, `refactor` and `perf` types commit messages would be considered a *Patch* change.
+
+This commit message strategy is the default strategy used by the Comet and is currently the only supported in Comet.
+
 ## Configuration Reference
 ### `strategy`
 Specifies all the strategic decisions in Comet. This parameter is intended to contain all the current/future 
@@ -61,7 +79,7 @@ when version string lookup will not be enough due to multiple instances of versi
 
 If the user provides two capturing groups, for example `(Version: )(Test).*`, Comet will throw an error.
 
-## CLI usage
+## Usage
 
 ## Interactive Initialization
 Comet provides an interactive mode to configure your project/s repository with Comet configuration. This step is a 
@@ -76,7 +94,6 @@ After successfully initializing Comet in your project/s repository, a configurat
 on the root path of your repository. This configuration will be used by Comet in future as reference configuration file 
 and to keep track of all release changes. 
 
-## Supported Development Models
 ## Available Workflows
 
 ***Warning:** Some supported workflows are dependent on specific branching models.*
@@ -87,6 +104,7 @@ model. Comet releases a new version on the stable branch for the projects that h
 development branch. A new Git tag is also push to the stable branch for each newly released project version. No version 
 is released if there are no changes found on the development branch with respect to the stable branch for any of the 
 configured project.
+
 Sample:
 ```commandline
 comet release
@@ -108,6 +126,7 @@ comet development
 This workflow is intended to create release candidate branches for the project/s with new changes on the development 
 branch with respect to the stable branch. A new release candidate branch is added with a prefix according to the value 
 configured in `release_branch_prefix` parameter in the Gitflow options.
+
 Sample:
 ```commandline
 comet release-candidate
@@ -118,6 +137,7 @@ comet release-candidate
 #### Branch Synchronization (`sync`)
 This workflow is intended to synchronization the stable and development branches and is only supported for the 
 Gitflow-based model.
+
 Sample:
 ```commandline
 comet sync
