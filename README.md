@@ -133,6 +133,14 @@ Comet includes major changes related to the configuration file format where mult
 replaced or removed. Consult the [configuration migration](./docs/usage.md#Upgrade-Deprecated-Configuration) guide if 
 you have already been using Comet in your project repository.
 
+### Do you know CLI commands have been updated? 
+Comet has introduced specifying the workflow without the `--run` flag that has been deprecated. For example, now you can 
+run the `release` workflow by executing `comet release` instead of `comet --run release`.
+One important change in the new CLI method is that `branch-flow` has been replaced by `development` for better 
+understanding. For example, `comet --run branch-flow` has been deprecated in favor of `comet development`.
+Consult the [configuration migration](./docs/usage.md#Upgrade-Deprecated-Configuration) guide if you have already been 
+using Comet in your project repository with the old CLI method.
+
 ## Contributing
 n/a
 
