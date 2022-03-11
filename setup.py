@@ -34,6 +34,7 @@ setup(
     license='MIT',
     description='Comet is a simple tool to automate/facilitate automated release cycle.',
     long_description=readme(),
+    long_description_content_type="text/markdown",
     url='http://github.com/beenum22/comet',
     author='Muneeb Ahmad',
     author_email='muneeb.gandapur@gmail.com',

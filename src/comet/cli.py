@@ -4,14 +4,14 @@
 import sys
 import os
 import argparse
-from .work_flows import GitFlow
-from .config import ConfigParser
 import logging.config
 from colorama import Fore, Style
 import coloredlogs
 
 from .work_flows import GitFlow
+from .work_flows import WorkflowRunner
 from .config import ConfigParser
+from .utilities import CometUtilities
 
 __author__ = 'Muneeb Ahmad'
 __version__ = '0.2.0'
@@ -27,12 +27,30 @@ def banner():
 ██║     ██║   ██║██╔████╔██║█████╗     ██║   
 ██║     ██║   ██║██║╚██╔╝██║██╔══╝     ██║   
 ╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗   ██║   
- ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝   
+ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝
+ Version: {__version__}   
 {Style.RESET_ALL}
 {Fore.LIGHTWHITE_EX}
 Comet is a simple tool to automate/facilitate release cycle.
 Happy Versioning!
 {Style.RESET_ALL}""")
+
+
+def deprecated_args(*replaced_args):
+    class DeprecateAction(argparse.Action):
+        def __init__(self, option_strings, dest, **kwargs):
+            if 'help' in kwargs:
+                kwargs['help'] = f'[DEPRECATED] {kwargs["help"]}'
+            super().__init__(option_strings, dest, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            if len(replaced_args) > 0:
+                sys.stderr.write(f"The option '{option_string}' is deprecated and replaced by "
+                                 f"'{','.join(replaced_args)}'.\n")
+            else:
+                sys.stderr.write(f"The option '{option_string}' is deprecated.\n")
+            setattr(namespace, self.dest, values)
+    return DeprecateAction
 
 
 def main() -> None:
@@ -76,15 +94,72 @@ def main() -> None:
 
     :return: None
     """
+    debug_mode = None
     comet_logger = logging.getLogger()
-    # coloredlogs.install(fmt="%(asctime)s %(name)s - %(levelname)s - %(message)s", level='DEBUG')
-    coloredlogs.install(fmt="%(levelname)s - %(message)s", level='DEBUG')
+    coloredlogs.DEFAULT_FIELD_STYLES = {
+        "asctime": {
+            "color": "green"
+        },
+        "hostname": {
+            "color": "magenta"
+        },
+        "levelname": {
+            "faint": True,
+            "color": "cyan"
+        },
+        "name": {
+            "color": "blue"
+        },
+        "programname": {
+            "color": "cyan"
+        },
+        "username": {
+            "color": "yellow"
+        }
+    }
+    coloredlogs.DEFAULT_LEVEL_STYLES = {
+        "critical": {
+            "bold": True,
+            "color": "red"
+        },
+        "debug": {
+            "color": "green",
+            "faint": True
+        },
+        "error": {
+            "color": "red"
+        },
+        "info": {
+            "color": "green"
+        },
+        "notice": {
+            "color": "magenta"
+        },
+        "success": {
+            "bold": True,
+            "color": "green"
+        },
+        "verbose": {
+            "color": "blue"
+        },
+        "warning": {
+            "color": "yellow"
+        },
+        "deprecated": {
+            "color": "yellow",
+            "faint": True
+        }
+    }
+    coloredlogs.install(fmt="%(levelname)s: %(message)s", level='DEBUG')
+    # Note: Custom logger level to print deprecated messages
+    CometUtilities.add_custom_logging_level('DEPRECATED', logging.INFO + 5)
     try:
         parser = argparse.ArgumentParser(
             prog="comet")
         logging_group = parser.add_mutually_exclusive_group()
         version_group = parser.add_argument_group(title="Versioning", description="Version related operations")
         flow_group = parser.add_argument_group(title="Workflow", description="Workflows related operations")
+        # flow_group = parser.add_mutually_exclusive_group()
         version_group.add_argument(
             "--version",
             action="version",
@@ -97,16 +172,24 @@ def main() -> None:
             help="Print all the project names"
         )
         version_group.add_argument(
+            "--project-version",
+            type=str,
+            nargs='+',
+            help="Print project version"
+        )
+        version_group.add_argument(
             "--project-dev-version",
             type=str,
             nargs='+',
-            help="Print development project version"
+            help="Print development project version",
+            action=deprecated_args("project-version")
         )
         version_group.add_argument(
             "--project-stable-version",
             type=str,
             nargs='+',
-            help="Print stable project version"
+            help="Print stable project version",
+            action=deprecated_args("project-version")
         )
         logging_group.add_argument(
             "--debug",
@@ -119,31 +202,56 @@ def main() -> None:
             action="store_true"
         )
         flow_group.add_argument(
+            "workflow",
+            nargs="?",
+            choices=[
+                "init",
+                "development",
+                "release-candidate",
+                "release",
+                "sync",
+                "migrate-config"
+            ],
+            help="Comet action to execute.\n"
+                 "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
+                 "development: Upgrade versioning on Git branches for Comet managed project/s, "
+                 "release-candidate: Create Release candidate branch for Comet managed project/s, "
+                 "release: Release a new version in stable branch for Comet managed project/s, "
+                 "sync: Synchronizes the development branch with stable branch, "
+                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format"
+        )
+        flow_group.add_argument(
             "--run",
             choices=[
                 "init",
                 "branch-flow",
                 "release-candidate",
                 "release",
-                "sync"
+                "sync",
+                "migrate-config"
             ],
             help="Comet action to execute.\n"
-                 "[init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
+                 "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
                  "branch-flow: Upgrade versioning on Git branches for Comet managed project/s, "
-                 "release-candidate: Create Release candidate branch for Comet managed project/s], "
-                 "release: Release a new version in stable branch for Comet managed project/s], "
-                 "sync: Synchronizes the development branch with stable branch"
+                 "release-candidate: Create Release candidate branch for Comet managed project/s, "
+                 "release: Release a new version in stable branch for Comet managed project/s, "
+                 "sync: Synchronizes the development branch with stable branch, "
+                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format",
+            required=False,
+            action=deprecated_args("[sync, init, branch-flow, release, release-candidate]")
         )
         flow_group.add_argument(
             "-s",
             "--scm-provider",
-            default="bitbucket",
+            default=None,
+            choices=["github", "bitbucket"],
             help="Git SCM provider name"
             )
         flow_group.add_argument(
             "-c",
             "--connection-type",
-            default="ssh",
+            default=None,
+            choices=["ssh", "https"],
             help="Git SCM provider remote connection type"
             )
         flow_group.add_argument(
@@ -193,6 +301,7 @@ def main() -> None:
             banner()
             comet_logger.setLevel(logging.DEBUG)
             comet_logger.info("Comet log level set to debug")
+            debug_mode = True
         else:
             banner()
             comet_logger.setLevel(logging.INFO)
@@ -200,20 +309,28 @@ def main() -> None:
             project_config = ConfigParser(config_path=args.project_config)
             project_config.read_config()
             print(" ".join(project_config.get_projects()))
-        elif args.project_dev_version or args.project_stable_version:
+        elif args.project_version or args.project_dev_version or args.project_stable_version:
             project_config = ConfigParser(config_path=args.project_config)
             project_config.read_config()
+            if args.project_version:
+                for project in args.project_version:
+                    if project not in [".", "./", ""]:
+                        project = os.path.join(os.path.dirname(args.project_config), project)
+                    print(f"{project.lstrip('/.')} "
+                          f"{project_config.get_project_version(project_path=project)}")
             if args.project_dev_version:
                 for project in args.project_dev_version:
                     if project not in [".", "./", ""]:
                         project = os.path.join(os.path.dirname(args.project_config), project)
-                    print(f"{project.lstrip('/.')} {project_config.get_project_version(project_path=project, version_type='dev')}")
+                    print(f"{project.lstrip('/.')} "
+                          f"{project_config.get_project_version(project_path=project, version_type='dev')}")
             if args.project_stable_version:
                 for project in args.project_stable_version:
                     if project not in [".", "./", ""]:
                         project = os.path.join(os.path.dirname(args.project_config), project)
-                    print(f"{project.lstrip('/.')} {project_config.get_project_version(project_path=project, version_type='stable')}")
-        if args.run == "init":
+                    print(f"{project.lstrip('/.')} "
+                          f"{project_config.get_project_version(project_path=project, version_type='stable')}")
+        if args.run == "init" or args.workflow == "init":
             project_config = ConfigParser(config_path=args.project_config)
             if os.path.exists(args.project_config):
                 logging.warning(f"Comet configuration is already initialized at [{args.project_config}]")
@@ -222,8 +339,15 @@ def main() -> None:
                 logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
                 project_config.initialize_config()
                 project_config.write_config()
-        elif args.run in ["sync", "branch-flow", "release-candidate", "release"]:
-            gitflow = GitFlow(
+        elif args.run == "migrate-config" or args.workflow == "migrate-config":
+            project_config = ConfigParser(config_path=args.project_config)
+            project_config.read_config()
+            logging.info(f"Migrating Comet configuration [{args.project_config}] to a newer/latest format")
+            project_config.migrate_deprecated_config()
+            project_config.write_config()
+        elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
+              args.workflow in ["sync", "development", "release-candidate", "release"]):
+            workflow = WorkflowRunner(
                 scm_provider=args.scm_provider,
                 connection_type=args.connection_type,
                 username=args.username,
@@ -233,16 +357,17 @@ def main() -> None:
                 project_config_path=args.project_config,
                 push_changes=args.push
             )
-        if args.run == "branch-flow":
-            gitflow.branch_flows()
-        elif args.run == "release-candidate":
-            gitflow.release_flow(branches=True)
-        elif args.run == "release":
-            gitflow.release_flow(branches=False)
-        elif args.run == "sync":
-            gitflow.sync_flow()
+        if args.run == "branch-flow" or args.workflow == "development":
+            workflow.run_branch_flow()
+        elif args.run == "release-candidate" or args.workflow == "release-candidate":
+            workflow.run_release_candidate_flow()
+        elif args.run == "release" or args.workflow == "release":
+            workflow.run_release_flow()
+        elif args.run == "sync" or args.workflow == "sync":
+            workflow.run_sync_flow()
     except Exception as err:
-        comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
+        if not debug_mode:
+            comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
         sys.exit(1)
     except KeyboardInterrupt:

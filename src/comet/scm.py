@@ -20,6 +20,8 @@ class ScmException(Exception):
         self.msg = msg
 
 
+# TODO: Add to check to make sure remote URL is according to the requested Git connection type
+# TODO: Fail if it fails to push changes to the remote due to invalid permissions
 class Scm(object):
     """Backend to handle interaction with Source Code Management (SCM) Provider.
 
@@ -42,8 +44,6 @@ class Scm(object):
                 workspace="test_workspace",
                 repo_local_path="test_repo",
                 ssh_private_key_path="~/.ssh/id_rsa",
-                development_branch="develop",
-                stable_branch="master"
         )
 
     .. important::
@@ -86,9 +86,7 @@ class Scm(object):
             repo: str = "",
             workspace: str = "",
             repo_local_path: str = "./",
-            stable_branch: str = "master",
-            development_branch: str = "develop",
-            source_branch: str = ""
+            configure_remote: bool = False
     ) -> None:
         """
         Initialize a new SCM class and returns None.
@@ -108,9 +106,7 @@ class Scm(object):
         :param repo: Target repository name
         :param workspace: Workspace/username with target repository
         :param repo_local_path: Repository path on the local machine
-        :param stable_branch: Stable branch name on the repository
-        :param development_branch: Development branch name on the repository
-        :param source_branch: Source/target branch name on the repository
+        :param configure_remote: Optional flag to configure remote repository
         :return: None
         :raises AssertionError:
             raises an exception for missing required attributes or invalid attributes, failed SCM upstream server/s
@@ -125,13 +121,12 @@ class Scm(object):
         self.repo = repo
         self.workspace = workspace
         self.repo_local_path = repo_local_path
-        self.stable_branch = stable_branch
-        self.development_branch = development_branch
-        self.source_branch = source_branch
+        self.configure_remote = configure_remote
         self.repo_url = None
         self.repo_object = None
         self._pre_checks()
-        self.generate_repo_url()
+        if self.configure_remote:
+            self.generate_repo_url()
         self.prepare_repo()
 
     def _pre_checks(self) -> None:
@@ -146,20 +141,18 @@ class Scm(object):
 
         :return: None
         """
-        assert self.connection_type in self.SUPPORTED_SCM_CONNECTION_TYPES, \
-            "Invalid connection type [%s] specified! Supported values are [%s]" % (
-                self.connection_type,
-                ",".join(self.SUPPORTED_SCM_CONNECTION_TYPES)
-            )
+        # TODO: Add check to make sure no file is changed in the local repo
+        if self.configure_remote:
+            assert self.connection_type in self.SUPPORTED_SCM_CONNECTION_TYPES, \
+                f"Invalid connection type {self.connection_type} specified! Supported values are " \
+                f"{','.join(self.SUPPORTED_SCM_CONNECTION_TYPES)}"
+            assert self.scm_provider in list(self.SUPPORTED_SCM_PROVIDERS.keys()), \
+                f"Invalid SCM provider {self.scm_provider} specified! Supported values are " \
+                f"{','.join(list(self.SUPPORTED_SCM_PROVIDERS.keys()))}"
+            if self.connection_type == "ssh":
+                self._validate_ssh_private_key()
         assert self.workspace, "Git workspace/username [workspace] variable not provided!"
         assert self.repo, "Git repository name [repo] variable not provided!"
-        assert self.scm_provider in list(self.SUPPORTED_SCM_PROVIDERS.keys()), \
-            "Invalid SCM provider [%s] specified! Supported values are [%s]" % (
-                self.scm_provider,
-                ",".join(list(self.SUPPORTED_SCM_PROVIDERS.keys()))
-            )
-        if self.connection_type == "ssh":
-            self._validate_ssh_private_key()
         self.repo_local_path = os.path.abspath(self.repo_local_path)
 
     def _validate_ssh_private_key(self) -> None:
@@ -182,15 +175,6 @@ class Scm(object):
         except SSHException as err:
             logger.debug(err)
             raise ScmException(f"SSH private key [{self.ssh_private_key_path}] is invalid!")
-
-    def get_supported_providers(self) -> list:
-        """
-        Helper method to return a list of supported SCM providers' names.
-
-        :return: List of supported SCM providers
-        :rtype: list
-        """
-        return list(self.SUPPORTED_SCM_PROVIDERS.keys())
 
     def _validate_scm_provider_server(self, url: str) -> bool:
         """
@@ -257,75 +241,82 @@ class Scm(object):
 
     def _validate_repo_local_path(self) -> None:
         """
-        Checks if the provided local repository path contains the requested Git repository.
+        Checks if the provided local repository path contains the requested Git repository with remotes configured.
 
         :return: None
-        :raises ScmException: raises an exception if the local repository path has a different Git repository
+        :raises ScmException:
+            raises an exception if the local repository path has a different Git repository or no remote/upstream
+            Git repositories are configured.
         """
         try:
             repo_object = Repo(self.repo_local_path)
-            assert os.path.basename(repo_object.remotes[0].config_reader.get("url").replace(".git", "")) == self.repo, \
-                f"The specified repository path [{self.repo_local_path}] contains a different Git repository"
+            # TODO: Remove redundant commented out lines
+            # assert repo_object.git_dir, \
+            #     f"The specified local directory is not a valid Git repository. " \
+            #     f"Configure a valid Git repository first."
+            # assert len(repo_object.remotes) > 0, \
+            #     f"The specified Git repository has no remote/upstream repositories configured. " \
+            #     f"Configure valid Git remote/upstream URLs first."
+            # assert os.path.basename(repo_object.remotes[0].config_reader.get("url").replace(".git", "")) == self.repo, \
+            #     f"The specified repository path [{self.repo_local_path}] contains a different Git repository or " \
+            #     f"invalid Git remote/upstream URLs are configured"
         except AssertionError as err:
             raise ScmException(err)
 
-    def _validate_branches(self) -> bool:
+    def get_supported_providers(self) -> list:
         """
-        Appends remote alias if the branches doesn't exist locally and validates if the provided Git branches exist
-        on the remote/upstream Git repository.
-        It checks the following branches:
-            * Stable branch
-            * Development branch
-            * Source branch
+        Helper method to return a list of supported SCM providers' names.
 
-        :return: Returns `True` if the provided branches exist locally or on remote/upstream Git repository or `False`
-                 otherwise
-        :rtype: bool
+        :return: List of supported SCM providers
+        :rtype: list
+        """
+        return list(self.SUPPORTED_SCM_PROVIDERS.keys())
+
+    @CometUtilities.unstable_function_warning
+    def has_local_branch(self, branch: str) -> bool:
+        """
+        Checks if the requested branch exists in the Git repository.
+
+        :param branch: Local Git branch name
+        :return: `True` if the requested branch exists locally in the Git repository or `False` otherwise
+        """
+        local_branches = [str(local_branch) for local_branch in self.repo_object.branches]
+        if branch in local_branches:
+            logger.debug(f"Git branch [{branch}] exists in the local Git repository")
+            return True
+        logger.debug(f"Git branch [{branch}] does not exist in the local Git repository")
+        return False
+
+    @CometUtilities.unstable_function_warning
+    def has_remote_branch(self, branch: str) -> bool:
+        """
+        Checks if the requested branch exists in the remote Git repository.
+
+        :param branch: Remote Git branch name
+        :return: `True` if the requested branch exists in the remote Git repository or `False` otherwise
+        """
+        if self.has_remote_alias_configured(self.get_remote_alias()):
+            remote_branches = [
+                str(remote_branch) for remote_branch in self.repo_object.remote(self.get_remote_alias()).refs
+            ]
+            if branch in remote_branches:
+                logger.debug(f"Git branch [{branch}] exists in the local Git repository")
+                return True
+            logger.debug(f"Git branch [{branch}] does not exist in the local Git repository")
+            return False
+        return False
+
+    @CometUtilities.unstable_function_warning
+    def has_remote_alias_configured(self, alias: str) -> bool:
+        """
+        Checks if the requested remote alias/upstream repository is configured for the Git repository.
+
+        :param alias: Git remote alias/upstream repository name
+        :return: `True` if the requested remote alias is configured for the Git repository or `False` otherwise
         """
         try:
-            if not self.source_branch:
-                logger.warning(
-                    f"Source branch is not specified. Setting source branch to the current active branch "
-                    f"[{self.get_active_branch()}]",
-                )
-                self.source_branch = self.get_active_branch()
-            local_branches = [str(branch) for branch in self.repo_object.branches]
-            remote_branches = [str(i) for i in self.repo_object.remotes[self.get_remote_alias()].refs]
-            if self.stable_branch not in local_branches:
-                logger.debug(
-                    f"Stable branch [{self.stable_branch}] not found locally. "
-                    f"Adding remote alias [{self.get_remote_alias()}] to the stable branch name "
-                    f"[{self.get_remote_alias()}/{self.stable_branch}]")
-                self.stable_branch = f"{self.get_remote_alias()}/{self.stable_branch}"
-                assert self.stable_branch in remote_branches, \
-                    "Stable branch [%s] does not exist on remote [%s]" % (
-                        self.stable_branch,
-                        self.get_remote_alias()
-                    )
-            if self.development_branch not in local_branches:
-                logger.debug(
-                    f"Development branch [{self.development_branch}] not found locally. "
-                    f"Adding remote alias [{self.get_remote_alias()}] to the development branch name "
-                    f"[{self.get_remote_alias()}/{self.development_branch}]")
-                self.development_branch = f"{self.get_remote_alias()}/{self.development_branch}"
-                assert self.development_branch in remote_branches, \
-                    "Development branch [%s] does not exist on remote [%s]" % (
-                        self.development_branch,
-                        self.get_remote_alias()
-                    )
-            if self.source_branch not in local_branches:
-                logger.debug(
-                    f"Source branch [{self.source_branch}] not found locally. "
-                    f"Adding remote alias [{self.get_remote_alias()}] to the source branch name "
-                    f"[{self.get_remote_alias()}/{self.source_branch}]")
-                assert self.source_branch in remote_branches, \
-                    "Source branch [%s] does not exist on remote [%s]" % (
-                        self.source_branch,
-                        self.get_remote_alias()
-                    )
-            return True
-        except AssertionError as err:
-            logger.debug(err)
+            return self.repo_object.remote(alias).exists()
+        except ValueError:
             return False
 
     def _strip_remote_alias(self, branch: str) -> str:
@@ -338,6 +329,15 @@ class Scm(object):
         """
         logger.debug(f"Stripping remote alias [{self.get_remote_alias()}] from the branch name")
         return re.sub(f"{self.get_remote_alias()}/", "", str(branch))
+
+    def _get_commit_object(self, revision: str):
+        """
+        Fetch GitPython 'Commit' object for the requested Git revision.
+
+        :param revision: Git revision
+        :return: Returns GitPython 'Commit' object for the requested Git revision.
+        """
+        return self.repo_object.commit(revision)
 
     def generate_repo_url(self) -> str:
         """
@@ -409,9 +409,14 @@ class Scm(object):
                     f"Cloning Git repository {self.workspace}/{self.repo}] from "
                     f"remote SCM provider [{self.scm_provider}] server"
                 )
+                # TODO: Is it revelant considering I need info about remote URL using Comet config, which exists at
+                #       root of this repo?
                 Repo.clone_from(url=self.repo_url, to_path=self.repo_local_path)
             self.repo_object = Repo(self.repo_local_path)
-            assert self._validate_branches(), "Git Branches validation failed!"
+            logger.debug(
+                f"Successfully prepared Git repository [{self.workspace}/{self.repo}]"
+                f"{' with remote URL [' + self.repo_url + ']' if self.repo_url else ''}"
+            )
         except GitError as err:
             logger.error("Failed to clone the Git repository [%s/%s] from remote SCM provider [%s] server",
                          self.workspace,
@@ -427,6 +432,39 @@ class Scm(object):
                          )
             raise
 
+    def get_commit_message(self, revision: str):
+        """
+        Fetch commit message for the requested Git revision such as commit hash ID or branch name.
+
+        :param revision: Git revision
+        :return: Git commit message for the requested Git revision
+        """
+        msg = None
+        msg = self._get_commit_object(revision).message
+        logger.debug(f"Commit message successfully fetched for the requested Git revision [{revision}]")
+        return msg
+
+    def get_commit_hexsha(self, revision: str, short=False):
+        """
+        Fetches 40 Bytes or optional shorter 7 Bytes Hex version for SHA-1 hash for the requested Git revision
+        such as commit hash ID or branch name.
+
+        :param revision: Git revision
+        :return: Git commit 40 Bytes or 7 Bytes Hex for the requested Git revision
+        """
+        sha = None
+        if short:
+            sha_length = 7
+            sha = self.repo_object.git.rev_parse(self._get_commit_object(revision).hexsha, short=sha_length)
+        else:
+            sha = self._get_commit_object(revision).hexsha
+        logger.debug(
+            f"Commit {'shorter 7 Bytes ' if short else ' '}hexsha successfully fetched for the "
+            f"requested Git revision [{revision}]"
+        )
+        return sha
+
+    # TODO: Replace branch with reference
     def find_new_commits(self, source_branch: str, reference_branch: str, path: str = ".") -> list:
         """
         Finds new commits for a specified file path in the source branch in comparison to the reference/target branch.
@@ -442,9 +480,10 @@ class Scm(object):
             f"Looking for new commits on [{path}] project path on source branch "
             f"[{source_branch}] compared to reference branch [{reference_branch}]")
         commit_range = f"{reference_branch}...{source_branch}"
-        commits = [commit for commit in self.repo_object.iter_commits(commit_range, paths=path, reverse=True)]
+        commits = [commit.hexsha for commit in self.repo_object.iter_commits(commit_range, paths=path, reverse=True)]
         return commits
 
+    # TODO: Check warnings for this method
     def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False) -> None:
         """
         Commits changes for a specified file path/s with an optional flag to push changes to the upstream or remote
@@ -478,14 +517,17 @@ class Scm(object):
             logger.debug(err)
             raise
 
-    def get_remote_alias(self) -> str:
+    def get_remote_alias(self) -> [str, None]:
         """
         Fetches the locally set Git remote alias. For example, `origin`.
 
         :return: Remote Git alias for the tracked/referenced
         :rtype: str
         """
-        return str(self.repo_object.remote())
+        try:
+            return str(self.repo_object.remote())
+        except ValueError:
+            return None
 
     def get_active_branch(self) -> str:
         """
@@ -496,6 +538,7 @@ class Scm(object):
         """
         return str(self.repo_object.active_branch)
 
+    @CometUtilities.deprecated_function_warning
     def get_active_branch_hex(self) -> str:
         """
         Fetches the 40 Bytes Hex version for SHA-1 hash of the locally active/checked out Git branch.
@@ -589,12 +632,12 @@ class Scm(object):
             # self.repo_object.index.merge_tree(destination_branch, base=merge_base)
             # self.repo_object.index.commit(f"chore: merge '{source_branch}' into '{destination_branch}')",
             #                               parent_commits=(source_branch.commit, destination_branch.commit))
-            self.repo_object.git.checkout(str(self.source_branch).lstrip(f"{self.get_remote_alias()}/"))
+            self.repo_object.git.checkout(self._strip_remote_alias(source_branch))
         except GitError as err:
             logger.debug(err)
             raise
 
-    def push_changes(self, branch: str = None, tags: str = False) -> None:
+    def push_changes(self, branch: str = None, tags: bool = False) -> None:
         """
         Push local Git changes to the remote/upstream Git repository from an optional specific source Git branch.
 
