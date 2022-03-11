@@ -140,10 +140,13 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            ${{ env.DOCKERHUB_IMAGE_NAME }}:${{ env.VERSION }}
-            ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.DOCKERHUB_IMAGE_NAME }}
+            ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
       - name: Push Container Images
         uses: docker/build-push-action@v2
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
