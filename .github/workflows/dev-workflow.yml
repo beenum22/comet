@@ -135,13 +135,16 @@ jobs:
           registry: ${{ env.GHCR_URL }}
           username: ${{ github.actor }}
           password: ${{ secrets.GIT_CR_TOKEN }}
-      - name: Push Image to Docker Hub
+      - name: Extract metadata (tags, labels) for Containers
+          id: meta
+          uses: docker/metadata-action@v3
+          with:
+            images: |
+              ${{ env.DOCKERHUB_IMAGE_NAME }}:${{ env.VERSION }}
+              ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}:${{ env.VERSION }}
+      - name: Push Container Images
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ${{ env.DOCKERHUB_IMAGE_NAME }}:${{ env.VERSION }}
-      - name: Push Image to Github Container Registry
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}:${{ env.VERSION }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
