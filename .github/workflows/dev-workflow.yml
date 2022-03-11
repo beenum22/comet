@@ -76,7 +76,7 @@ jobs:
         run: >-
               comet
               --debug
-              --run branch-flow
+              development
               --scm-provider github
               --username ${{ secrets.GIT_USERNAME }}
               --password ${{ secrets.GIT_TOKEN }}
@@ -113,7 +113,7 @@ jobs:
       - name: Install Comet
         run: pip install --user .
       - name: Set Version Variable
-        run: echo "VERSION=$(comet --suppress --project-dev-version . | cut -d' ' -f2 | tr + _)" >> $GITHUB_ENV
+        run: echo "VERSION=$(comet --suppress --project-version . | cut -d' ' -f2 | tr + _)" >> $GITHUB_ENV
       - name: Load Docker Image
         run: |
           docker load --input /tmp/comet.tar

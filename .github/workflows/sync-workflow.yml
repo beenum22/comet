@@ -22,7 +22,7 @@ jobs:
         run: >-
               comet
               --debug
-              --run sync
+              sync
               --scm-provider github
               --username ${{ secrets.GIT_USERNAME }}
               --password ${{ secrets.GIT_TOKEN }}
