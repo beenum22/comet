@@ -109,11 +109,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
+          flavor: |
+            latest=true
           images: |
-            ${{ env.DOCKERHUB_IMAGE_NAME }}:latest
-            ${{ env.DOCKERHUB_IMAGE_NAME }}:${{ env.VERSION }}
-            ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}:latest
-            ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.DOCKERHUB_IMAGE_NAME }}
+            ${{ env.GHCR_URL }}/${{ env.GHCR_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
       - name: Push Container Images
         uses: docker/build-push-action@v2
         with:
