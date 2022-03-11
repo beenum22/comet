@@ -3,7 +3,7 @@ repo: comet
 strategy:
   commits_format:
     type: conventional_commits
-    options:
+    options: null
   development_model:
     type: gitflow
     options:
@@ -12,10 +12,10 @@ strategy:
       release_branch_prefix: release
 projects:
 - path: .
-  version: 0.2.0
+  version: 0.3.0-dev.1
   history:
-    next_release_type: no_change
-    latest_bump_commit_hash: null
+    next_release_type: minor
+    latest_bump_commit_hash: 8b7a5f1
   version_regex: ''
   version_files:
   - setup.py

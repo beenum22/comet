@@ -14,7 +14,7 @@ from .config import ConfigParser
 from .utilities import CometUtilities
 
 __author__ = 'Muneeb Ahmad'
-__version__ = '0.2.0'
+__version__ = '0.3.0-dev.1'
 __license__ = "MIT"
 __maintainer__ = "Muneeb Ahmad"
 __email__ = "muneeb.gandapur@gmail.com"
