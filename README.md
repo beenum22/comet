@@ -1,5 +1,6 @@
 ![Release](https://github.com/beenum22/comet/workflows/Release/badge.svg)
 ![Stable Build](https://github.com/beenum22/comet/workflows/Stable%20Branch/badge.svg?branch=master)
+![Development Build](https://github.com/beenum22/comet/workflows/Development%20Branch/badge.svg?branch=master)
 ![Default Build](https://github.com/beenum22/comet/workflows/Default%20Branch/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/beenum/comet)
