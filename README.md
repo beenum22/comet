@@ -67,7 +67,7 @@ These workflows include **branch specific flow**, **stable version release**, **
 project/s repository. Sample Comet available workflows are provided below: 
 
 ```commandline
-comet branch-flow
+comet development
 comet release
 comet release-candidate
 comet sync
@@ -89,7 +89,7 @@ usage: comet [-h] [--version] [--projects] [--project-version PROJECT_VERSION [P
              [--project-stable-version PROJECT_STABLE_VERSION [PROJECT_STABLE_VERSION ...]] [--debug | --suppress]
              [--run {init,branch-flow,release-candidate,release,sync,migrate-config}] [-s SCM_PROVIDER] [-c CONNECTION_TYPE] [-u USERNAME] [-p PASSWORD]
              [-spkp SSH_PRIVATE_KEY_PATH] [-rlp {./}] [-pc PROJECT_CONFIG] [--push]
-             [{init,branch-flow,release-candidate,release,sync,migrate-config}]
+             [{init,development,release-candidate,release,sync,migrate-config}]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -107,7 +107,7 @@ Versioning:
 Workflow:
   Workflows related operations
 
-  {init,branch-flow,release-candidate,release,sync,migrate-config}
+  {init,development,release-candidate,release,sync,migrate-config}
                         Comet action to execute. init: Initialize Comet repository configuration if it does not exist (Interactive mode), branch-flow: Upgrade versioning on
                         Git branches for Comet managed project/s, release-candidate: Create Release candidate branch for Comet managed project/s, release: Release a new
                         version in stable branch for Comet managed project/s, sync: Synchronizes the development branch with stable branch, migrate-config: Upgrades the
