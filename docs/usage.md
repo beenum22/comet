@@ -7,7 +7,7 @@
 ### Conventional Commits
 Comet includes an implementation of [conventional commits specification](https://www.conventionalcommits.org/en/v1.0.0/) 
 that has a defined process to parse the commit messages and take versioning decisions based on the type of commits. 
-In semantic versioning, we have three main types of versions; `major`, `minor` and `patch`. Comet has defined rules  
+In semantic versioning, we have three main types of versions; `major`, `minor` and `patch`. Comet has defined rules 
 to map the type of commit messages with the type of versioning decision to take. Mapping between the semantic versioning 
 and the conventional commits specification is given below:
 
