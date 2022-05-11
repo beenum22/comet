@@ -1247,98 +1247,26 @@ class GitFlow(WorkflowBase):
 class TBD(WorkflowBase):
     """Backend to handle Trunk Based Development work flows.
 
-    This GitFlow backend implements customized Gitflow-based development work flows for Comet-managed projects. The
-    GitFlow object provides work flows for branches and releases. Detailed overview of the work flows is given below:
+    This TBD backend implements customized Trunk-based Development (TBD) based development work flows for Comet-managed
+    projects. The TBD object provides work flows for mainline branch. Detailed overview of the work flows is given
+    below:
 
     Branch Flows:
         Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
         branches according to the type of a branch.
 
-        1. Stable branch
-           Underdevelopment
+        1. Stable Release
 
-        2. Development branch
-           Development branch flow is executed for a branch specified in :ivar:`development_branch` parameter. It uses
-           stable branch version as a reference. If new commits are found on the development branch in comparison to
-           the stable branch, it will bump the development version according to the types of commits found. Versions
-           bumps are performed for the keywords/identifiers found specified in the `ConventionalCommits` class.
-
-           Versions on the development branch have an appended pre-release identifier `dev`.
-
-           For example:
-
-           Stable version =  1.0.0
-
-           Current Dev version = 1.0.0-dev.1
-
-           One minor change is merged to the development branch.
-
-           New Dev version = 1.1.0-dev.1
-
-           Another minor change is merged.
-
-           New Dev version = 1.1.0-dev.2
-
-           One major change is merged to the development branch.
-
-           New Dev version = 2.0.0-dev.1
-
-        3. Release branch
-           Release branch flow is executed for branches with a prefix as specified in `release_branch_prefix` parameter
-           in the Comet configuration file. It uses development version as a reference. If new commits are found on the
-           release branch in comparison to the development branch, it will look for keywords/identifiers specified in
-           the `ConventionalCommits` class for version upgrades and only bump the pre-release version.
-
-           Versions on the release branch have an appended pre-release identifier `rc`.
-
-           For example:
-
-           Dev version =  1.0.0-dev.1
-
-           Current release version = 1.0.0-rc.1
-
-           One patch change is merged to the release branch.
-
-           New release version = 1.0.0-rc.2
-
-        4. Default branch (Feature/Bugfix/Misc)
-           Default branch flow is executed for any branch that doesn't have a dedicated flow. If new commits are found
-           in comparison to the development branch, it will upgrade the version by appending a 40 Bytes Hex version for
-           latest SHA-1 commit hash as metadata. After the upgrade, it will commit the changes with an optional
-           :ivar:`push_changes` flag that will push changes to the remote if it is set.
-
-           For example:
-
-           Dev version = 0.1.0-dev.1
-
-           Default branch version =  0.1.0-dev.1+1d1f848c0a59b224206da26fbcae11e0bc5f5190
-
-    Release Flows:
-        1. Release Candidate branch
-        2. Release to Stable branch
-
+        2. Development Builds
 
     handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
     branches according to the type of a branch.
-
-     . The idea is
-    to have a class that handles all the Semantic Versioning related operations for the requested project. This class
-    depends on `ConfigParser` class and is only supposed to be used with Comet too. It can be used with other tools if
-    they follow the Comet philosophy or design.
-
-    The SemVer object can read the reference version in the main project version file (.comet.yml usually), bump it
-    according to the requested type of version bump and update the main project version file. Since, it depends on
-    the Comet design, it can use two types of reference versions: `dev` and `stable`.
-    This SemVer object also supports updating project specific version file paths using the provided regex pattern.
-
-    .. important::
-        Semver instance represents one project version only.
 
     Example:
 
     .. code-block:: python
 
-        gitflow = GitFlow(
+        tbd = TBD(
             connection_type="https",
             scm_provider="bitbucket",
             username="dummy",
@@ -1349,14 +1277,15 @@ class TBD(WorkflowBase):
             push_changes=False
         )
 
-        gitflow.default_branch_flow()
+        tbd.branch_flow()
+        tbd.release_flow()
 
     """
 
     def __init__(
             self,
             connection_type: str = "https",
-            scm_provider: str = "bitbucket",
+            scm_provider: str = "github",
             username: str = "",
             password: str = "",
             ssh_private_key_path: str = "~/.ssh/id_rsa",
@@ -1365,7 +1294,7 @@ class TBD(WorkflowBase):
             push_changes: bool = False
     ) -> None:
         """
-        Initializes a GitFlow object.
+        Initializes a TBD object.
 
         :ivar connection_type: Git connection type for SCM provider
         :ivar scm_provider: Source Code Management Provider name
@@ -1389,20 +1318,118 @@ class TBD(WorkflowBase):
             project_config_path,
             push_changes
         )
-        pass
+        self.source_branch = None
+        self.main_branch = None
+        self.prepare_branches()
+
+    def prepare_branches(self) -> None:
+        """
+        Prepare the Git branches required as a pre-requisite for the GitFlow by generating the reference branch
+        names according to the local Git repository state. In the method, the following operations are performed:
+
+            1. Remote alias/upstream repository name is appended to the branch names if they don't exist locally
+            on the remote/upstream Git repository
+            2. Source branch name is set to the current active branch
+            3. Stable and development branch names are set according to the Comet configuration
+
+        :return: Returns `True` if the branches preparation is successful or `False`
+                 otherwise
+        :rtype: bool
+        """
+        try:
+            self.source_branch = self.scm.get_active_branch()
+            self.main_branch = self.project_config.get_development_model_options()["main_branch"]
+            if (
+                    not self.scm.has_local_branch(self.source_branch) or
+                    not self.scm.has_local_branch(self.main_branch)
+            ):
+                logger.debug(
+                    f"Some of the Git branches does not exist locally. Using remote "
+                    f"alias with branch names to access branches from the upstream "
+                    f"repository"
+                )
+                assert self.scm.get_remote_alias(), \
+                    f"No remote alias is not configured on the local " \
+                    f"repository. Either configure a remote alias/upstream repository " \
+                    f"or make sure all the required branches (stable, development and " \
+                    f"source) exist on the local repository"
+
+            if not self.scm.has_local_branch(self.source_branch):
+                logger.debug(
+                    f"Source branch [{self.source_branch}] does not exist locally"
+                )
+                logger.debug(
+                    f"Adding remote alias [{self.scm.get_remote_alias()}] to the source branch name "
+                    f"[{self.scm.get_remote_alias()}/{self.source_branch}]")
+                self.source_branch = f"{self.scm.get_remote_alias()}/{self.source_branch}"
+                assert self.scm.has_remote_branch(self.source_branch), \
+                    f"Source branch [{self.source_branch}] does not exist on the remote alias/upstream repository" \
+                    f"[{self.scm.get_remote_alias()}]"
+
+            if not self.scm.has_local_branch(self.main_branch):
+                logger.debug(
+                    f"Main branch [{self.source_branch}] does not exist locally"
+                )
+                logger.debug(
+                    f"Adding remote alias [{self.scm.get_remote_alias()}] to the main branch name "
+                    f"[{self.scm.get_remote_alias()}/{self.main_branch}]")
+                self.main_branch = f"{self.scm.get_remote_alias()}/{self.main_branch}"
+                assert self.scm.has_remote_branch(self.main_branch), \
+                    f"Main branch [{self.main_branch}] does not exist on the remote alias/upstream repository" \
+                    f"[{self.scm.get_remote_alias()}]"
+
+        except AssertionError as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to prepare the required branches for the workflows. Verify that the required branches for "
+                f"GitFlow based development exists in the local/remote Git repository"
+            )
 
     @CometUtilities.unstable_function_warning
-    def release_flow(self, branches: bool = False) -> None:
+    def release_flow(self) -> list:
         """
         Executes the Release flow according to the specified parameters.
-        There are two types of Release flows:
-            1. Direct release of the source/active branch to the stable branch
-            2. Release Candidate branch creation
 
-        :param branches: Branches flag that specifies creation of release candidate branches only
         :return: None
+
+        Releases a new version for the Comet-managed project(s).
+
+        Checks out to the stable branch, merges the development branch into the stable branch, updates all the relevant
+        version files to this new stable version and checks out back to the development branch.
+
+        :return: List of changed/released projects
         """
-        pass
+        assert self.main_branch == self.source_branch, \
+            f"Only main branch is allowed to be released!"
+        self.prepare_versioning()
+        changed_projects = []
+        for project in self.project_config.config["projects"]:
+            if self.release_project_version(project["path"], release_branch):
+                changed_projects.append(project["path"])
+
+        if len(changed_projects) > 0:
+            self.scm.commit_changes(
+                ConventionalCommits.DEFAULT_VERSION_COMMIT,
+                self.project_config_path,
+                *changed_projects,
+                push=self.push_changes
+            )
+            self.scm.merge_branches(
+                source_branch=self.source_branch,
+                destination_branch=self.stable_branch
+            )
+
+        for project in changed_projects:
+            release_version = self.projects_semver_objects[project].get_final_version()
+            project_name = os.path.basename(project).strip('.')
+            self.scm.add_tag(f"{project_name}{'-' if project_name else ''}{release_version}")
+
+        if self.push_changes:
+            self.scm.push_changes(
+                branch=self.stable_branch,
+                tags=True
+            )
+        return changed_projects
 
     def sync_flow(self) -> None:
         """
@@ -1599,16 +1626,16 @@ class WorkflowRunner(object):
             raise Exception(f"Trunk Based Development (tbd) strategy is currently not supported by Comet. Support for "
                             f"TBD strategy is in the roadmap and will be added in future releases")
 
-            # self.runner = TBD(
-            #     scm_provider=self.scm_provider,
-            #     connection_type=self.connection_type,
-            #     username=self.username,
-            #     password=self.password,
-            #     ssh_private_key_path=self.ssh_private_key_path,
-            #     project_local_path=self.project_local_path,
-            #     project_config_path=self.project_config_path,
-            #     push_changes=self.push_changes
-            # )
+            self.runner = TBD(
+                scm_provider=self.scm_provider,
+                connection_type=self.connection_type,
+                username=self.username,
+                password=self.password,
+                ssh_private_key_path=self.ssh_private_key_path,
+                project_local_path=self.project_local_path,
+                project_config_path=self.project_config_path,
+                push_changes=self.push_changes
+            )
         elif development_model == "custom":
             raise Exception(f"Custom strategy is currently not supported by Comet. Support for "
                             f"Custom strategy is in the roadmap and will be added in future releases")
