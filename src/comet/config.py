@@ -574,11 +574,15 @@ class ConfigParser(object):
                         f"in Comet configuration")
             strategy = self.config["strategy"]
             self.config["strategy"] = {}
-            self.config["strategy"]["type"] = strategy
-            self.config["strategy"]["options"] = {}
-            self.config["strategy"]["options"]["stable_branch"] = self.config["stable_branch"]
-            self.config["strategy"]["options"]["development_branch"] = self.config["development_branch"]
-            self.config["strategy"]["options"]["release_branch_prefix"] = self.config["release_branch_prefix"]
+            self.config["strategy"]["development_model"] = {}
+            self.config["strategy"]["commits_format"] = {}
+            self.config["strategy"]["development_model"]["type"] = strategy
+            self.config["strategy"]["commits_format"]["type"] = "conventional_commits"
+            self.config["strategy"]["development_model"]["options"] = {}
+            self.config["strategy"]["commits_format"]["options"] = None
+            self.config["strategy"]["development_model"]["options"]["stable_branch"] = self.config["stable_branch"]
+            self.config["strategy"]["development_model"]["options"]["development_branch"] = self.config["development_branch"]
+            self.config["strategy"]["development_model"]["options"]["release_branch_prefix"] = self.config["release_branch_prefix"]
             self.config.pop("stable_branch", None)
             self.config.pop("development_branch", None)
             self.config.pop("release_branch_prefix", None)
