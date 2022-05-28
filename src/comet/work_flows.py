@@ -1,6 +1,7 @@
 # from typing import TypedDict, List, Dict
 import logging
 import os
+import ast
 from .scm import Scm
 from .semver import SemVer
 from .conventions import ConventionalCommits
@@ -119,6 +120,8 @@ class WorkflowBase(object):
 
     """
 
+    GIT_NOTES_PREFIX: str = "comet"
+
     def __init__(
             self,
             connection_type: str = "https",
@@ -128,6 +131,7 @@ class WorkflowBase(object):
             ssh_private_key_path: str = "~/.ssh/id_rsa",
             project_local_path: str = "./",
             project_config_path: str = "./comet",
+            git_notes_state_backend: bool = False,
             push_changes: bool = False
     ) -> None:
         """
@@ -140,6 +144,7 @@ class WorkflowBase(object):
         :ivar ssh_private_key_path: SSH private key file path on the local machine with write access to the project/repository
         :ivar project_config_path: Comet configuration file
         :ivar project_local_path: Local repository directory path
+        :ivar git_notes_state_backend: Optional flag to use new feature for storing version history/state in Git notes
         :ivar push_changes: Optional flag to push changes to remote/upstream repository
         :return: None
         :raises Exception:
@@ -152,6 +157,7 @@ class WorkflowBase(object):
         self.ssh_private_key_path = ssh_private_key_path
         self.project_config_path = project_config_path
         self.project_local_path = project_local_path
+        self.git_notes_state_backend = git_notes_state_backend
         self.push_changes = push_changes
         self.scm = None
         self.project_config = None
@@ -186,6 +192,59 @@ class WorkflowBase(object):
             return version_type
         return None
 
+    def read_projects_state_git_notes(self) -> list:
+        """
+        Read Comet-managed projects version state/history Git notes.
+
+        :return: Projects version history/state list
+        """
+        try:
+            note_ref = f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"
+            assert self.scm.has_local_reference(reference=note_ref), f"Projects version history/state for " \
+                                                                     f"reference [{note_ref}] doesn't exist " \
+                                                                     f"in the local repository Git notes. Maybe your " \
+                                                                     f"projects history/state is stored in the project " \
+                                                                     f"configuration file instead?"
+            notes_list = self.scm.list_notes(
+                note_ref=note_ref
+            )
+            notes_objects = [note.split(" ")[1] for note in notes_list.split("\n")]
+            logger.info(f"Reading projects version history/state from Git notes for [{self.scm.get_active_branch()}] branch")
+            projects = ast.literal_eval(
+                self.scm.read_note(
+                    note_ref=note_ref,
+                    object_ref=notes_objects[-1]
+                )
+            )
+            return projects
+        except AssertionError as err:
+            logger.debug(err)
+            raise Exception(f"Failed to load the Comet-managed projects version history/state from Git notes")
+
+    def update_projects_state_git_notes(self) -> None:
+        """
+        Update Comet-managed projects version state/history Git notes
+
+        :return: None
+        """
+        note_ref = f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"
+        notes_list = self.scm.list_notes(
+            note_ref=note_ref
+        )
+        notes_objects = [note.split(" ")[1] for note in notes_list.split("\n")]
+        logger.info(f"Removing outdated projects version history from Git notes for [{self.scm.get_active_branch()}] branch")
+        for notes_object in notes_objects:
+            self.scm.remove_note(
+                note_ref,
+                notes_object
+            )
+        logger.info(f"Adding updated projects version history to Git notes for [{self.scm.get_active_branch()}] branch")
+        self.scm.add_note(
+            note_ref=note_ref,
+            notes=self.project_config.config["projects"],
+            object_ref=self.scm.get_active_branch()
+        )
+
     def prepare_workflow(self) -> None:
         """
         Executes workflow preparation steps by parsing configuration file and initiailizing Scm instance.
@@ -197,9 +256,14 @@ class WorkflowBase(object):
         try:
             self._sanitize_paths()
             self.project_config = ConfigParser(
-                config_path=self.project_config_path
+                config_path=self.project_config_path,
+                skip_state=True if self.git_notes_state_backend else False
             )
             self.project_config.read_config(sanitize=True, validate=True)
+
+            # for project in self.project_config.config["projects"]:
+            #     self.project_config.update_project_version(project_path=project["path"], version="5.0.0")
+            #     self.project_config.update_project_version(project_path=project["path"], version="5.0.0")
 
             self.scm = Scm(
                 scm_provider=self.scm_provider,
@@ -212,6 +276,8 @@ class WorkflowBase(object):
                 ssh_private_key_path=self.ssh_private_key_path,
                 configure_remote=self.push_changes
             )
+            if self.git_notes_state_backend:
+                self.project_config.config["projects"] = self.read_projects_state_git_notes()
         except Exception:
             raise
 
@@ -571,6 +637,7 @@ class GitFlow(WorkflowBase):
             ssh_private_key_path: str = "~/.ssh/id_rsa",
             project_local_path: str = "./",
             project_config_path: str = "./comet",
+            git_notes_state_backend: bool = False,
             push_changes: bool = False
     ) -> None:
         """
@@ -583,6 +650,7 @@ class GitFlow(WorkflowBase):
         :ivar ssh_private_key_path: SSH private key file path on the local machine with write access to the project/repository
         :ivar project_config_path: Comet configuration file
         :ivar project_local_path: Local repository directory path
+        :ivar git_notes_state_backend: Optional flag to use new feature for storing version history/state in Git notes
         :ivar push_changes: Optional flag to push changes to remote/upstream repository
         :return: None
         :raises Exception:
@@ -596,6 +664,7 @@ class GitFlow(WorkflowBase):
             ssh_private_key_path,
             project_local_path,
             project_config_path,
+            git_notes_state_backend,
             push_changes
         )
         self.source_branch = None
@@ -802,6 +871,9 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project["path"])
 
         if len(changed_projects) > 0:
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -882,6 +954,9 @@ class GitFlow(WorkflowBase):
 
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -980,6 +1055,9 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1070,6 +1148,9 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for the target [{', '.join(changed_projects)}] projects")
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1152,6 +1233,9 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] projects")
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1235,6 +1319,9 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
+            self.project_config.write_config()
+            if self.git_notes_state_backend:
+                self.update_projects_state_git_notes()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1246,110 +1333,6 @@ class GitFlow(WorkflowBase):
 
 class TBD(WorkflowBase):
     """Backend to handle Trunk Based Development work flows.
-
-    This GitFlow backend implements customized Gitflow-based development work flows for Comet-managed projects. The
-    GitFlow object provides work flows for branches and releases. Detailed overview of the work flows is given below:
-
-    Branch Flows:
-        Branch flows handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
-        branches according to the type of a branch.
-
-        1. Stable branch
-           Underdevelopment
-
-        2. Development branch
-           Development branch flow is executed for a branch specified in :ivar:`development_branch` parameter. It uses
-           stable branch version as a reference. If new commits are found on the development branch in comparison to
-           the stable branch, it will bump the development version according to the types of commits found. Versions
-           bumps are performed for the keywords/identifiers found specified in the `ConventionalCommits` class.
-
-           Versions on the development branch have an appended pre-release identifier `dev`.
-
-           For example:
-
-           Stable version =  1.0.0
-
-           Current Dev version = 1.0.0-dev.1
-
-           One minor change is merged to the development branch.
-
-           New Dev version = 1.1.0-dev.1
-
-           Another minor change is merged.
-
-           New Dev version = 1.1.0-dev.2
-
-           One major change is merged to the development branch.
-
-           New Dev version = 2.0.0-dev.1
-
-        3. Release branch
-           Release branch flow is executed for branches with a prefix as specified in `release_branch_prefix` parameter
-           in the Comet configuration file. It uses development version as a reference. If new commits are found on the
-           release branch in comparison to the development branch, it will look for keywords/identifiers specified in
-           the `ConventionalCommits` class for version upgrades and only bump the pre-release version.
-
-           Versions on the release branch have an appended pre-release identifier `rc`.
-
-           For example:
-
-           Dev version =  1.0.0-dev.1
-
-           Current release version = 1.0.0-rc.1
-
-           One patch change is merged to the release branch.
-
-           New release version = 1.0.0-rc.2
-
-        4. Default branch (Feature/Bugfix/Misc)
-           Default branch flow is executed for any branch that doesn't have a dedicated flow. If new commits are found
-           in comparison to the development branch, it will upgrade the version by appending a 40 Bytes Hex version for
-           latest SHA-1 commit hash as metadata. After the upgrade, it will commit the changes with an optional
-           :ivar:`push_changes` flag that will push changes to the remote if it is set.
-
-           For example:
-
-           Dev version = 0.1.0-dev.1
-
-           Default branch version =  0.1.0-dev.1+1d1f848c0a59b224206da26fbcae11e0bc5f5190
-
-    Release Flows:
-        1. Release Candidate branch
-        2. Release to Stable branch
-
-
-    handle how to upgrade the versions and changelogs (Not developed yet) for the target Git
-    branches according to the type of a branch.
-
-     . The idea is
-    to have a class that handles all the Semantic Versioning related operations for the requested project. This class
-    depends on `ConfigParser` class and is only supposed to be used with Comet too. It can be used with other tools if
-    they follow the Comet philosophy or design.
-
-    The SemVer object can read the reference version in the main project version file (.comet.yml usually), bump it
-    according to the requested type of version bump and update the main project version file. Since, it depends on
-    the Comet design, it can use two types of reference versions: `dev` and `stable`.
-    This SemVer object also supports updating project specific version file paths using the provided regex pattern.
-
-    .. important::
-        Semver instance represents one project version only.
-
-    Example:
-
-    .. code-block:: python
-
-        gitflow = GitFlow(
-            connection_type="https",
-            scm_provider="bitbucket",
-            username="dummy",
-            password="test",
-            ssh_private_key_path="~/.ssh/id_rsa",
-            project_local_path="./",
-            project_config_path=".comet.yml",
-            push_changes=False
-        )
-
-        gitflow.default_branch_flow()
 
     """
 
@@ -1539,6 +1522,7 @@ class WorkflowRunner(object):
             ssh_private_key_path: str = "~/.ssh/id_rsa",
             project_local_path: str = "./",
             project_config_path: str = "./comet",
+            git_notes_state_backend: bool = False,
             push_changes: bool = False
     ) -> None:
         """
@@ -1551,6 +1535,7 @@ class WorkflowRunner(object):
         :ivar ssh_private_key_path: SSH private key file path on the local machine with write access to the project/repository
         :ivar project_config_path: Comet configuration file
         :ivar project_local_path: Local repository directory path
+        :ivar git_notes_state_backend: Optional flag to use new feature for storing version history/state in Git notes
         :ivar push_changes: Optional flag to push changes to remote/upstream repository
         :return: None
         :raises Exception:
@@ -1563,6 +1548,7 @@ class WorkflowRunner(object):
         self.ssh_private_key_path = ssh_private_key_path
         self.project_config_path = project_config_path
         self.project_local_path = project_local_path
+        self.git_notes_state_backend = git_notes_state_backend
         self.push_changes = push_changes
         self.runner = None
         self.prepare_workflow()
@@ -1573,7 +1559,10 @@ class WorkflowRunner(object):
 
         :return: Strategy type string
         """
-        project_config = ConfigParser(config_path=self.project_config_path)
+        project_config = ConfigParser(
+            config_path=self.project_config_path,
+            skip_state=True if self.git_notes_state_backend else False
+        )
         project_config.read_config()
         return project_config.get_development_model_type()
 
@@ -1593,6 +1582,7 @@ class WorkflowRunner(object):
                 ssh_private_key_path=self.ssh_private_key_path,
                 project_local_path=self.project_local_path,
                 project_config_path=self.project_config_path,
+                git_notes_state_backend=self.git_notes_state_backend,
                 push_changes=self.push_changes
             )
         elif development_model == "tbd":

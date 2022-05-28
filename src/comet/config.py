@@ -207,20 +207,21 @@ class ConfigParser(object):
                         {
                             "required": [
                                 "stable_version",
-                                "dev_version"
+                                "dev_version",
+                                "version_regex",
+                                "path",
+                                "version_files"
                             ]
                         },
                         {
                             "required": [
                                 "version",
-                                "history"
+                                "history",
+                                "version_regex",
+                                "path",
+                                "version_files"
                             ]
                         }
-                    ],
-                    "required": [
-                        "version_regex",
-                        "path",
-                        "version_files"
                     ],
                     "additionalProperties": False,
                     "properties": {
@@ -268,17 +269,199 @@ class ConfigParser(object):
         }
     }
 
+    SUPPORTED_CONFIG_SCHEMA_WITHOUT_VERSION_STATE: dict = {
+        "additionalProperties": False,
+        "type": "object",
+        "required": [
+            "strategy",
+            "repo",
+            "workspace",
+            "projects"
+        ],
+        "if": {
+            "properties": {
+                "strategy": {
+                    "type": "string"
+                }
+            }
+        },
+        "then": {
+            "properties": {
+                "strategy": {
+                    "enum": [
+                        "gitflow",
+                        "tbd",
+                        "custom"
+                    ]
+                }
+            },
+            "required": [
+                "strategy",
+                "repo",
+                "workspace",
+                "projects",
+                "stable_branch",
+                "development_branch",
+                "release_branch_prefix",
+            ]
+        },
+        "else": {
+            "properties": {
+                "strategy": {
+                    "additionalProperties": False,
+                    "properties": {
+                        "development_model": {
+                            "additionalProperties": False,
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "gitflow",
+                                        "tbd",
+                                        "custom"
+                                    ]
+                                },
+                                "options": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "stable_branch": {
+                                            "type": "string"
+                                        },
+                                        "development_branch": {
+                                            "type": "string"
+                                        },
+                                        "release_branch_prefix": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ],
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "gitflow"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "required": [
+                                    "options"
+                                ],
+                                "properties": {
+                                    "options": {
+                                        "type": "object",
+                                        "required": [
+                                            "stable_branch",
+                                            "development_branch",
+                                            "release_branch_prefix",
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "commits_format": {
+                            "additionalProperties": False,
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "conventional_commits",
+                                        "custom"
+                                    ]
+                                },
+                                "options": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "development_model",
+                        "commits_format"
+                    ]
+                }
+            }
+        },
+        "properties": {
+            "strategy": {
+                "type": [
+                    "object",
+                    "string"
+                ]
+            },
+            "repo": {
+                "type": "string"
+            },
+            "workspace": {
+                "type": "string"
+            },
+            "stable_branch": {
+                "type": "string"
+            },
+            "development_branch": {
+                "type": "string"
+            },
+            "release_branch_prefix": {
+                "type": "string"
+            },
+            "projects": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "version_regex",
+                        "path",
+                        "version_files"
+                    ],
+                    "additionalProperties": False,
+                    "properties": {
+                        "version_regex": {
+                            "type": "string"
+                        },
+                        "path": {
+                            "type": "string"
+                        },
+                        "version_files": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                    }
+                }
+            }
+        }
+    }
+
     def __init__(
             self,
             config_path: str = ".comet.yml",
+            skip_state: bool = False
     ) -> None:
         """
         Initialize a new ConfigParser class object.
 
         :param config_path: Comet-managed project configuration file
+        :param skip_state: Optional flag to skip version history/state fetch from project configuration file
         :return: None
         """
         self.config_path: str = config_path
+        self.skip_state: bool = skip_state
         self.config: dict = {}
 
     def _print_deprecated_parameters_warnings(self) -> None:
@@ -305,7 +488,12 @@ class ConfigParser(object):
             raises an exception if the configuration schema validation fails
         """
         try:
-            validate(instance=self.config, schema=self.SUPPORTED_CONFIG_SCHEMA)
+            if self.skip_state:
+                logger.debug(f"Skipping Comet configuration schema validation for version history/state related "
+                             f"parameters")
+                validate(instance=self.config, schema=self.SUPPORTED_CONFIG_SCHEMA_WITHOUT_VERSION_STATE)
+            else:
+                validate(instance=self.config, schema=self.SUPPORTED_CONFIG_SCHEMA)
             logger.debug("Comet configuration schema successfully validated")
         except ValidationError as err:
             logger.debug(err)
@@ -439,7 +627,7 @@ class ConfigParser(object):
             for idx, project_dict in enumerate(self.config["projects"]):
                 if project_dict["path"] == project_path:
                     self.config["projects"][idx][parameter] = value
-            self.write_config()
+            # self.write_config()
         except AssertionError as err:
             logger.debug(err)
             raise Exception(
@@ -848,6 +1036,11 @@ class ConfigParser(object):
                 f"Unable to find the Comet configuration file [{self.config_path}]"
             with open(self.config_path) as f:
                 self.config = yaml.load(f, Loader=SafeLoader)
+            if self.skip_state:
+                for project in self.config["projects"]:
+                    project.pop("version", None)
+                    project.pop("history", None)
+                print(self.config)
             if validate:
                 self._validate_config()
             if sanitize:
@@ -865,8 +1058,13 @@ class ConfigParser(object):
             raises an exception if it fails to write to the YAML-based Comet configuration file
         """
         try:
+            config = self.config
+            if self.skip_state:
+                for project in config["projects"]:
+                    project.pop("version", None)
+                    project.pop("history", None)
             with open(self.config_path, 'w') as file:
-                yaml.dump(self.config, file, sort_keys=False)
+                yaml.dump(config, file, sort_keys=False)
         except Exception as err:
             logger.debug(err)
             raise Exception(f"Failed to write the Comet configuration file")

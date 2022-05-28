@@ -273,6 +273,21 @@ class Scm(object):
         return list(self.SUPPORTED_SCM_PROVIDERS.keys())
 
     @CometUtilities.unstable_function_warning
+    def has_local_reference(self, reference: str) -> bool:
+        """
+        Checks if the requested Git reference exists in the Git repository.
+
+        :param reference: Local Git reference name
+        :return: `True` if the requested Git reference exists locally in the Git repository or `False` otherwise
+        """
+        local_references = [str(ref) for ref in self.repo_object.refs]
+        if reference in local_references:
+            logger.debug(f"Git reference [{reference}] exists in the local Git repository")
+            return True
+        logger.debug(f"Git reference [{reference}] does not exist in the local Git repository")
+        return False
+
+    @CometUtilities.unstable_function_warning
     def has_local_branch(self, branch: str) -> bool:
         """
         Checks if the requested branch exists in the Git repository.
@@ -653,3 +668,134 @@ class Scm(object):
         except GitError as err:
             logger.debug(err)
             raise
+
+    @CometUtilities.unstable_function_warning
+    def add_note(
+            self,
+            note_ref: str = None,
+            notes: str = "",
+            object_ref: str = "",
+            force: bool = True
+    ) -> None:
+        """
+        Add Git notes at custom notes reference for the target reference object.
+
+        :param note_ref: Custom reference under `.git/refs/notes/` where the Git note will be stored
+        :param notes: Notes to store at the specified Git notes reference
+        :param object_ref: Target Git reference/object to store notes for
+        :param force: Replace existing notes for the target reference/object if it is set
+
+        :return: None
+        :raises GitError:
+            raises an exception if it fails to create Git notes for the specified Git notes reference and object
+        """
+        try:
+            logger.debug(f"Adding Git note [{notes}] at [{note_ref}] for the target Git reference [{object_ref}]")
+            self.repo_object.git.notes(
+                f"--ref={note_ref}",
+                "add",
+                "-m",
+                f"{notes}",
+                f"{'-f' if force else ''}",
+                f"{object_ref}"
+            )
+        except GitError as err:
+            logger.debug(err)
+            raise
+
+    @CometUtilities.unstable_function_warning
+    def read_note(
+            self,
+            note_ref: str = None,
+            object_ref: str = None,
+    ) -> str:
+        """
+        Fetch Git notes at the specified Git notes reference for the target Git reference/object.
+
+        :param note_ref: Custom reference under `.git/refs/notes/` where the Git note will be stored
+        :param object_ref: Target Git reference/object to store notes for
+
+        :return: Git note string
+        :raises GitError:
+            raises an exception if it fails to fetch Git notes for the specified Git notes reference and object
+        """
+        try:
+            assert self.has_local_reference(reference=note_ref), f"Git notes reference [{note_ref}] doesn't exist in " \
+                                                                 f"the local Git repository"
+            # assert self.has_local_reference(reference=object_ref), f"Target Git reference [{object_ref}] doesn't exist " \
+            #                                                        f"in the local Git repository"
+            logger.debug(f"Fetching Git note at [{note_ref}] for the target Git reference [{object_ref}]")
+            note = self.repo_object.git.notes(
+                f"--ref={note_ref}",
+                "show",
+                f"{object_ref}"
+            )
+            logger.debug(f"Git notes: {note}")
+            return note
+        except (AssertionError, GitError) as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to fetch Git note for target [{object_ref}] at the specified Git reference [{note_ref}]"
+            )
+
+    @CometUtilities.unstable_function_warning
+    def list_notes(
+            self,
+            note_ref: str = None
+    ) -> str:
+        """
+        List Git notes at the specified Git notes reference.
+
+        :param note_ref: Custom reference under `.git/refs/notes/` where the Git note will be stored
+
+        :return: Git notes list
+        :raises GitError:
+            raises an exception if it fails to list Git notes for the specified Git notes reference
+        """
+        try:
+            assert self.has_local_reference(reference=note_ref), f"Git notes reference [{note_ref}] doesn't exist in " \
+                                                                 f"the local Git repository"
+            logger.debug(f"Listing Git notes at [{note_ref}] reference")
+            notes = self.repo_object.git.notes(
+                f"--ref={note_ref}",
+                "list"
+            )
+            return notes
+        except (AssertionError, GitError) as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to list Git notes at the specified Git reference [{note_ref}]"
+            )
+
+    @CometUtilities.unstable_function_warning
+    def remove_note(
+            self,
+            note_ref: str,
+            object_ref: str
+    ) -> None:
+        """
+        List Git notes at the specified Git notes reference.
+
+        :param note_ref: Custom reference under `.git/refs/notes/` where the Git note will be deleted
+        :param object_ref: Target Git reference/object to delete notes for
+
+        :return: None
+        :raises GitError:
+            raises an exception if it fails to remove Git notes for the specified Git notes reference and object
+        """
+        try:
+            assert self.has_local_reference(reference=note_ref), f"Git notes reference [{note_ref}] doesn't exist in " \
+                                                                 f"the local Git repository"
+            # assert self.has_local_reference(reference=object_ref), f"Target Git reference [{object_ref}] doesn't exist " \
+            #                                                        f"in the local Git repository"
+            logger.debug(f"Removing Git notes at [{note_ref}] reference for the target Git reference [{object_ref}]")
+            self.repo_object.git.notes(
+                f"--ref={note_ref}",
+                "remove",
+                object_ref
+            )
+        except (AssertionError, GitError) as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to remove Git notes for target [{object_ref}] at the specified Git reference [{note_ref}]"
+            )

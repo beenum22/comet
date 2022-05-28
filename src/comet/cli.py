@@ -11,6 +11,7 @@ import coloredlogs
 from .work_flows import GitFlow
 from .work_flows import WorkflowRunner
 from .config import ConfigParser
+from .scm import Scm
 from .utilities import CometUtilities
 
 __author__ = 'Muneeb Ahmad'
@@ -290,6 +291,12 @@ def main() -> None:
             help="Git Project configuration file path"
         )
         flow_group.add_argument(
+            "-sb",
+            "--use-git-notes-state",
+            action="store_true",
+            help="Use Git notes to keep track of projects versions state/history (Beta feature)."
+        )
+        flow_group.add_argument(
             "--push",
             help="Push changes to remote",
             action="store_true"
@@ -340,11 +347,15 @@ def main() -> None:
                 project_config.initialize_config()
                 project_config.write_config()
         elif args.run == "migrate-config" or args.workflow == "migrate-config":
-            project_config = ConfigParser(config_path=args.project_config)
+            project_config = ConfigParser(
+                config_path=args.project_config
+            )
             project_config.read_config()
             logging.info(f"Migrating Comet configuration [{args.project_config}] to a newer/latest format")
             project_config.migrate_deprecated_config()
             project_config.write_config()
+
+
         elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
               args.workflow in ["sync", "development", "release-candidate", "release"]):
             workflow = WorkflowRunner(
@@ -355,6 +366,7 @@ def main() -> None:
                 ssh_private_key_path=args.ssh_private_key_path,
                 project_local_path=args.repo_local_path,
                 project_config_path=args.project_config,
+                git_notes_state_backend=args.use_git_notes_state,
                 push_changes=args.push
             )
         if args.run == "branch-flow" or args.workflow == "development":
