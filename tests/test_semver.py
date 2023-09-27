@@ -9,7 +9,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
 
-class SemVerTest(unittest.TestCase, TestBaseConfig):
+class SemVerTest(unittest.TestCase):
 
     @patch("src.comet.semver.ConfigParser")
     @patch('src.comet.semver.os.path.isdir')
@@ -22,17 +22,16 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.get_version_enum_value' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
 
         logger.debug("Testing enum output for valid version bump names")
@@ -54,21 +53,20 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.get_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
 
         logger.debug("Testing version output string")
-        self.assertEqual(semver.get_version(), self.TEST_DEV_VERSION)
+        self.assertEqual(semver.get_version(), TestBaseConfig.TEST_DEV_VERSION)
 
     @patch("src.comet.semver.ConfigParser")
     @patch('src.comet.semver.os.path.isdir')
@@ -81,21 +79,20 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.get_final_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
 
         logger.debug("Testing final or stable version output string")
-        self.assertEqual(semver.get_final_version(), self.TEST_STABLE_VERSION)
+        self.assertEqual(semver.get_final_version(), TestBaseConfig.TEST_STABLE_VERSION)
 
     @patch("src.comet.semver.ConfigParser")
     @patch('src.comet.semver.os.path.isdir')
@@ -108,44 +105,18 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.prepare_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
-
-        logger.debug("Testing versioning object preparation for v0/old Comet configuration format")
-        SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
-            version_files=[
-                self.TEST_PROJECT_VERSION_FILE
-            ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type="dev"
-        )
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         logger.debug("Testing versioning object preparation for v1/new Comet configuration format")
         SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
-
-        logger.debug(
-            "Testing exception handling for incorrect reference version type for v0/old Comet configuration format"
-        )
-        with self.assertRaises(Exception):
-            SemVer(
-                project_path=self.TEST_REPO_DIRECTORY,
-                version_files=[
-                    self.TEST_PROJECT_VERSION_FILE
-                ],
-                version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-                project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-                reference_version_type="release"
-            )
 
     @patch("src.comet.semver.ConfigParser")
     @patch('src.comet.semver.os.path.isdir')
@@ -158,17 +129,16 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.compare_bumps' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
 
         logger.debug("Testing valid version bumps comparison")
@@ -200,17 +170,16 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.bump_version' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         semver = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
 
         semver.bump_version(
@@ -315,24 +284,23 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
     ):
         logger.info("Executing unit tests for 'SemVer.update_version_files' method")
 
-        mock_configparser.return_value.config = self.TEST_GITFLOW_CONFIGS["mono"]["v0"]
-        mock_configparser.return_value.get_project_version.return_value = self.TEST_DEV_VERSION
+        mock_configparser.return_value.config = TestBaseConfig.TEST_GITFLOW_CONFIGS["mono"]["v1"]
+        mock_configparser.return_value.get_project_version.return_value = TestBaseConfig.TEST_DEV_VERSION
 
         logger.debug(
             "Testing version files update using regex pattern with one capturing group for v1/new Comet "
             "configuration format"
         )
         semver_v1_with_one_group_regex = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
         semver_v1_with_one_group_regex.update_version_files(
-            self.TEST_DEV_VERSION, f"{semver_v1_with_one_group_regex.get_final_version()}"
+            TestBaseConfig.TEST_DEV_VERSION, f"{semver_v1_with_one_group_regex.get_final_version()}"
         )
         for version_file in semver_v1_with_one_group_regex.version_files:
             mock_update.assert_called_with(version_file, "r+")
@@ -345,16 +313,15 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "Testing version files update without version regex pattern for v1/new Comet configuration format"
         )
         semver_v1_without_regex = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
             version_regex="",
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
         semver_v1_without_regex.update_version_files(
-            self.TEST_DEV_VERSION, semver_v1_without_regex.get_final_version()
+            TestBaseConfig.TEST_DEV_VERSION, semver_v1_without_regex.get_final_version()
         )
         for version_file in semver_v1_without_regex.version_files:
             mock_update.assert_called_with(version_file, "r+")
@@ -368,16 +335,15 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
             "configuration format"
         )
         semver_v1_with_zero_group_regex = SemVer(
-            project_path=self.TEST_REPO_DIRECTORY,
+            project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
             version_files=[
-                self.TEST_PROJECT_VERSION_FILE
+                TestBaseConfig.TEST_PROJECT_VERSION_FILE
             ],
-            version_regex=self.TEST_PROJECT_VERSION_REGEX_ZERO_GROUP,
-            project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-            reference_version_type=None
+            version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ZERO_GROUP,
+            reference_version=TestBaseConfig.TEST_DEV_VERSION
         )
         semver_v1_with_zero_group_regex.update_version_files(
-            self.TEST_DEV_VERSION, f"{semver_v1_with_zero_group_regex.get_final_version()}"
+            TestBaseConfig.TEST_DEV_VERSION, f"{semver_v1_with_zero_group_regex.get_final_version()}"
         )
         for version_file in semver_v1_with_zero_group_regex.version_files:
             mock_update.assert_called_with(version_file, "r+")
@@ -387,17 +353,16 @@ class SemVerTest(unittest.TestCase, TestBaseConfig):
         logger.debug("Testing version files update exception handling")
         with self.assertRaises(Exception):
             semver_v1_with_one_group_regex = SemVer(
-                project_path=self.TEST_REPO_DIRECTORY,
+                project_path=TestBaseConfig.TEST_REPO_DIRECTORY,
                 version_files=[
-                    self.TEST_PROJECT_VERSION_FILE
+                    TestBaseConfig.TEST_PROJECT_VERSION_FILE
                 ],
-                version_regex=self.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
-                project_version_file=self.TEST_GITFLOW_CONFIG_FILE,
-                reference_version_type=None
+                version_regex=TestBaseConfig.TEST_PROJECT_VERSION_REGEX_ONE_GROUP,
+                reference_version=TestBaseConfig.TEST_DEV_VERSION
             )
             mock_update.side_effect = OSError()
             semver_v1_with_one_group_regex.update_version_files(
-                self.TEST_DEV_VERSION, f"{semver_v1_with_one_group_regex.get_final_version()}"
+                TestBaseConfig.TEST_DEV_VERSION, f"{semver_v1_with_one_group_regex.get_final_version()}"
             )
 
 

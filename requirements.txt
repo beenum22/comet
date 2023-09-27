@@ -8,3 +8,4 @@ paramiko==2.7.2
 requests==2.25.0
 
 pip
+setuptools~=60.2.0

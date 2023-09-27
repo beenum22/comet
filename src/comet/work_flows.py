@@ -2,11 +2,13 @@
 import logging
 import os
 import ast
+
 from .scm import Scm
 from .semver import SemVer
 from .conventions import ConventionalCommits
 from .config import ConfigParser
 from .utilities import CometUtilities, CometDeprecationContext
+from .init import State
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +163,7 @@ class WorkflowBase(object):
         self.push_changes = push_changes
         self.scm = None
         self.project_config = None
+        self.project_state = None
         self.projects_semver_objects = {}
         self.prepare_workflow()
 
@@ -175,76 +178,6 @@ class WorkflowBase(object):
         self.project_config_path = os.path.normpath(f"{self.project_local_path}/{self.project_config_path}")
         logger.debug(f"Sanitized paths according to the root/repo directory [{self.project_local_path}]")
 
-    @CometUtilities.deprecation_facilitation_warning
-    def _set_deprecated_version_type(self, version_type: str) -> [str, None]:
-        """
-        Sets the reference version type according to :param:`version_type` for the specified project if the
-        deprecated versioning format is configured where 'dev_version' and 'stable_version' parameters are
-        configured for a Comet-managed project.
-
-        :param version_type:
-            Reference version type to set if deprecated versioning format is configured in the
-            Comet configuration file
-        :return:
-            Reference version type if the deprecated versioning format is configured or 'None' otherwise
-        """
-        if self.project_config.has_deprecated_versioning_format():
-            return version_type
-        return None
-
-    def read_projects_state_git_notes(self) -> list:
-        """
-        Read Comet-managed projects version state/history Git notes.
-
-        :return: Projects version history/state list
-        """
-        try:
-            note_ref = f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"
-            assert self.scm.has_local_reference(reference=note_ref), f"Projects version history/state for " \
-                                                                     f"reference [{note_ref}] doesn't exist " \
-                                                                     f"in the local repository Git notes. Maybe your " \
-                                                                     f"projects history/state is stored in the project " \
-                                                                     f"configuration file instead?"
-            notes_list = self.scm.list_notes(
-                note_ref=note_ref
-            )
-            notes_objects = [note.split(" ")[1] for note in notes_list.split("\n")]
-            logger.info(f"Reading projects version history/state from Git notes for [{self.scm.get_active_branch()}] branch")
-            projects = ast.literal_eval(
-                self.scm.read_note(
-                    note_ref=note_ref,
-                    object_ref=notes_objects[-1]
-                )
-            )
-            return projects
-        except AssertionError as err:
-            logger.debug(err)
-            raise Exception(f"Failed to load the Comet-managed projects version history/state from Git notes")
-
-    def update_projects_state_git_notes(self) -> None:
-        """
-        Update Comet-managed projects version state/history Git notes
-
-        :return: None
-        """
-        note_ref = f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"
-        notes_list = self.scm.list_notes(
-            note_ref=note_ref
-        )
-        notes_objects = [note.split(" ")[1] for note in notes_list.split("\n")]
-        logger.info(f"Removing outdated projects version history from Git notes for [{self.scm.get_active_branch()}] branch")
-        for notes_object in notes_objects:
-            self.scm.remove_note(
-                note_ref,
-                notes_object
-            )
-        logger.info(f"Adding updated projects version history to Git notes for [{self.scm.get_active_branch()}] branch")
-        self.scm.add_note(
-            note_ref=note_ref,
-            notes=self.project_config.config["projects"],
-            object_ref=self.scm.get_active_branch()
-        )
-
     def prepare_workflow(self) -> None:
         """
         Executes workflow preparation steps by parsing configuration file and initiailizing Scm instance.
@@ -255,15 +188,17 @@ class WorkflowBase(object):
         """
         try:
             self._sanitize_paths()
+            # skip_config_file_state = False
+            # if self.has_versioning_state_in_comet_file:
+            #     skip_config_file_state = False
+            # elif self.update_projects_state_git_notes:
+            #     skip_config_file_state = True
+
             self.project_config = ConfigParser(
                 config_path=self.project_config_path,
-                skip_state=True if self.git_notes_state_backend else False
+                skip_state=self.git_notes_state_backend
             )
             self.project_config.read_config(sanitize=True, validate=True)
-
-            # for project in self.project_config.config["projects"]:
-            #     self.project_config.update_project_version(project_path=project["path"], version="5.0.0")
-            #     self.project_config.update_project_version(project_path=project["path"], version="5.0.0")
 
             self.scm = Scm(
                 scm_provider=self.scm_provider,
@@ -276,19 +211,42 @@ class WorkflowBase(object):
                 ssh_private_key_path=self.ssh_private_key_path,
                 configure_remote=self.push_changes
             )
+
             if self.git_notes_state_backend:
-                self.project_config.config["projects"] = self.read_projects_state_git_notes()
+                self.project_state = State(
+                    self.project_config,
+                    self.scm
+                )
+                # if not self.project_state.has_state(f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"):
+                #     logger.warning(f"")
+            #
+            # if self.git_notes_state_backend and not self.has_versioning_state_in_git_notes():
+            #     pass
+            # else:
+            #     assert self.has_versioning_state_in_comet_file()
         except Exception:
             raise
 
-    # TODO: Remove redundant commented out lines
-    @CometUtilities.deprecated_arguments_warning("reference_version_type")
-    def prepare_versioning(self, reference_version_type: str = "") -> None:
+    @CometUtilities.unstable_function_warning
+    def prepare_state(self):
+        for project in self.project_state.get_state(
+                f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                self.scm.get_active_branch()
+        ):
+            self.project_config.update_project_version(
+                project_path=project["path"],
+                version=project["version"],
+            )
+            self.project_config.update_project_history(
+                project_path=project["path"],
+                bump_type=project["history"]["next_release_type"],
+                commit_sha=project["history"]["latest_bump_commit_hash"]
+            )
+
+    def prepare_versioning(self) -> None:
         """
         Prepares project/s specific SemVer instances according to the reference version type specified in
-        :var:`reference_version_type`.
 
-        :param reference_version_type: Reference version type (Deprecated)
         :return: None
         :raises Exception:
             raises an exception if it fails to initialize version for any of the projects
@@ -299,8 +257,9 @@ class WorkflowBase(object):
                     project_path=project["path"],
                     version_files=project["version_files"],
                     version_regex=project["version_regex"],
-                    project_version_file=self.project_config_path,
-                    reference_version_type=reference_version_type
+                    reference_version=self.project_config.get_project_version(
+                        project["path"]
+                    )
                 )
         except Exception:
             raise
@@ -443,7 +402,7 @@ class WorkflowBase(object):
             ]
         return commits
 
-    @CometUtilities.unstable_function_warning
+    @CometUtilities.unsupported_function_error
     def update_version_history(
             self,
             project: str,
@@ -671,7 +630,74 @@ class GitFlow(WorkflowBase):
         self.stable_branch = None
         self.development_branch = None
         self.release_branch_prefix = None
+        self.feature_branch_prefix = None
+        self.bugfix_branch_prefix = None
+        self.hotfix_branch_prefix = None
+        self.experimental_branch_prefix = None
         self.prepare_branches()
+        if git_notes_state_backend:
+            self.prepare_state()
+
+    @CometUtilities.unstable_function_warning
+    def prepare_state(self) -> None:
+        """
+        Initializes versioning state in Git notes for branches according to the GitFlow model
+
+        :return:
+        """
+        if not self.project_state.has_state(f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"):
+            logger.warning(
+                f"Comet version state/history for [{self.scm.get_active_branch()}] branch doesn't exist locally")
+            self.scm.fetch_notes()
+            if not self.project_state.has_state(f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}"):
+                logger.warning(
+                    f"Comet version state/history for [{self.scm.get_active_branch()}] branch doesn't exist on "
+                    f"remote as well"
+                )
+                if self.hotfix_branch_prefix in self.source_branch or \
+                        self.development_branch in self.source_branch:
+                    logger.info(
+                        f"Setting Comet version state/history for "
+                        f"[{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}] branch using the reference "
+                        f"[{self.GIT_NOTES_PREFIX}/state/{self.stable_branch}] branch"
+                    )
+                    ref_projects = self.project_state.get_state(
+                        f"{self.GIT_NOTES_PREFIX}/state/{self.stable_branch}",
+                        self.stable_branch
+                    )
+                    self.project_state.update_state(
+                        projects=ref_projects,
+                        state_ref=f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                        object_ref=self.scm.get_active_branch()
+                    )
+                else:
+                    logger.info(
+                        f"Setting Comet version state/history for "
+                        f"[{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}] branch using the reference "
+                        f"[{self.GIT_NOTES_PREFIX}/state/{self.development_branch}] branch"
+                    )
+                    ref_projects = self.project_state.get_state(
+                        f"{self.GIT_NOTES_PREFIX}/state/{self.development_branch}",
+                        self.development_branch
+                    )
+                    self.project_state.update_state(
+                        projects=ref_projects,
+                        state_ref=f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                        object_ref=self.scm.get_active_branch()
+                    )
+        for project in self.project_state.get_state(
+                f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                self.scm.get_active_branch()
+        ):
+            self.project_config.update_project_version(
+                project_path=project["path"],
+                version=project["version"],
+            )
+            self.project_config.update_project_history(
+                project_path=project["path"],
+                bump_type=project["history"]["next_release_type"],
+                commit_sha=project["history"]["latest_bump_commit_hash"]
+            )
 
     def prepare_branches(self) -> None:
         """
@@ -692,6 +718,10 @@ class GitFlow(WorkflowBase):
             self.stable_branch = self.project_config.get_development_model_options()["stable_branch"]
             self.development_branch = self.project_config.get_development_model_options()["development_branch"]
             self.release_branch_prefix = self.project_config.get_development_model_options()["release_branch_prefix"]
+            self.feature_branch_prefix = "feature"  # TODO: Remove hard-coded values
+            self.bugfix_branch_prefix = "bugfix"  # TODO: Remove hard-coded values
+            self.hotfix_branch_prefix = "hotfix"  # TODO: Remove hard-coded values
+            self.experimental_branch_prefix = "experimental"  # TODO: Remove hard-coded values
             if (
                     not self.scm.has_local_branch(self.source_branch) or
                     not self.scm.has_local_branch(self.stable_branch) or
@@ -781,6 +811,25 @@ class GitFlow(WorkflowBase):
             source_branch=self.stable_branch,
             destination_branch=self.development_branch
         )
+        if self.git_notes_state_backend:
+            stable_projects = self.project_state.get_state(
+                f"{self.GIT_NOTES_PREFIX}/state/{self.stable_branch}",
+                self.stable_branch
+            )
+            dev_projects = self.project_state.get_state(
+                f"{self.GIT_NOTES_PREFIX}/state/{self.development_branch}",
+                self.development_branch
+            )
+            if stable_projects != dev_projects:
+                logger.info(
+                    f"Syncing Comet version state/history for [{self.development_branch}] branch with "
+                    f"[{self.stable_branch}] branch"
+                )
+                self.project_state.update_state(
+                    projects=stable_projects,
+                    state_ref=f"{self.GIT_NOTES_PREFIX}/state/{self.development_branch}",
+                    object_ref=self.development_branch
+                )
         if self.push_changes:
             self.scm.push_changes(
                 branch=self.development_branch,
@@ -829,20 +878,18 @@ class GitFlow(WorkflowBase):
             )
             self.project_config.update_project_version(
                 project,
-                release_version,
-                version_type=self._set_deprecated_version_type("stable")
+                release_version
             )
-            if self.project_config.has_deprecated_versioning_format():
-                self.project_config.update_project_version(
-                    project,
-                    release_version,
-                    version_type=self._set_deprecated_version_type("dev")
-                )
-            self.update_version_history(
-                project,
-                None,
-                SemVer.SUPPORTED_RELEASE_TYPES[SemVer.NO_CHANGE]
+            self.project_config.update_project_history(
+                project_path=project,
+                bump_type=SemVer.SUPPORTED_RELEASE_TYPES[SemVer.NO_CHANGE],
+                commit_sha=None
             )
+            # self.update_version_history(
+            #     project,
+            #     None,
+            #     SemVer.SUPPORTED_RELEASE_TYPES[SemVer.NO_CHANGE]
+            # )
             return True
         else:
             logger.debug(f"Skipping release for sub-project [{project}]")
@@ -864,16 +911,22 @@ class GitFlow(WorkflowBase):
         ]
         assert len([match for match in allowed_branches if (match in release_branch)]) > 0, \
             f"Only development branch and release candidate branches are allowed to be released!"
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
+        self.prepare_versioning()
         changed_projects = []
         for project in self.project_config.config["projects"]:
             if self.release_project_version(project["path"], release_branch):
                 changed_projects.append(project["path"])
 
         if len(changed_projects) > 0:
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                    self.scm.get_active_branch()
+                )
+                if self.push_changes:
+                    self.scm.push_changes(branch=self.scm.GIT_NOTES_REFS, tags=False)
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -884,6 +937,12 @@ class GitFlow(WorkflowBase):
                 source_branch=self.source_branch,
                 destination_branch=self.stable_branch
             )
+            if self.git_notes_state_backend:
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.stable_branch}",
+                    self.stable_branch
+                )
 
         for project in changed_projects:
             release_version = self.projects_semver_objects[project].get_final_version()
@@ -921,8 +980,7 @@ class GitFlow(WorkflowBase):
         self.projects_semver_objects[project].bump_version(
             release=SemVer.PRE_RELEASE, pre_release="rc")
         current_version = self.project_config.get_project_version(
-            project,
-            version_type=self._set_deprecated_version_type("dev")
+            project
         )
         new_version = self.projects_semver_objects[project].get_version()
         self.projects_semver_objects[project].update_version_files(
@@ -931,8 +989,7 @@ class GitFlow(WorkflowBase):
         )
         self.project_config.update_project_version(
             project,
-            new_version,
-            version_type=self._set_deprecated_version_type("dev")
+            new_version
         )
         return True
 
@@ -945,7 +1002,7 @@ class GitFlow(WorkflowBase):
 
         :return: List of projects for which the release candidate branches are created
         """
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
+        self.prepare_versioning()
 
         changed_projects = []
         for project in self.project_config.config["projects"]:
@@ -954,9 +1011,13 @@ class GitFlow(WorkflowBase):
 
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                    self.scm.get_active_branch()
+                )
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -997,8 +1058,7 @@ class GitFlow(WorkflowBase):
         )
 
         current_version = self.project_config.get_project_version(
-            project,
-            version_type=self._set_deprecated_version_type("stable")
+            project
         )
         new_version = self.projects_semver_objects[project].get_version()
 
@@ -1011,19 +1071,22 @@ class GitFlow(WorkflowBase):
             logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
             self.project_config.update_project_version(
                 project,
-                new_version,
-                version_type=self._set_deprecated_version_type("stable")
+                new_version
             )
-            if not self.update_version_history(
-                    project,
-                    self.scm.get_commit_hexsha(commits[-1], short=True),
-                    SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
-            ):
-                self.project_config.update_project_version(
-                    project,
-                    new_version,
-                    version_type=self._set_deprecated_version_type("dev")
-                )
+            self.project_config.update_project_history(
+                project_path=project,
+                bump_type=SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type],
+                commit_sha=self.scm.get_commit_hexsha(commits[-1], short=True)
+            )
+            # if not self.update_version_history(
+            #         project,
+            #         self.scm.get_commit_hexsha(commits[-1], short=True),
+            #         SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            # ):
+            #     self.project_config.update_project_version(
+            #         project,
+            #         new_version
+            #     )
         return True
 
     @CometUtilities.unstable_function_warning
@@ -1047,7 +1110,7 @@ class GitFlow(WorkflowBase):
             f"make sure to merge all the version bumps on a Stable branch into the Development branch after the "
             f"execution."
         )
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("stable"))
+        self.prepare_versioning()
         changed_projects = []
         # TODO: Initialize versioning variables
         for project in self.project_config.config["projects"]:
@@ -1055,9 +1118,15 @@ class GitFlow(WorkflowBase):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for {', '.join(changed_projects)} projects")
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.stable_branch}",
+                    self.stable_branch
+                )
+                if self.push_changes:
+                    self.scm.push_changes(branch=self.scm.GIT_NOTES_REFS, tags=False)
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1117,14 +1186,18 @@ class GitFlow(WorkflowBase):
             logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
             self.project_config.update_project_version(
                 project,
-                new_version,
-                version_type=self._set_deprecated_version_type("dev")
+                new_version
             )
-            self.update_version_history(
-                project,
-                self.scm.get_commit_hexsha(commits[-1], short=True),
-                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            self.project_config.update_project_history(
+                project_path=project,
+                bump_type=SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type],
+                commit_sha=self.scm.get_commit_hexsha(commits[-1], short=True)
             )
+            # self.update_version_history(
+            #     project,
+            #     self.scm.get_commit_hexsha(commits[-1], short=True),
+            #     SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            # )
             return True
         else:
             logger.debug(f"Skipping version upgrade for the target [{project}] project")
@@ -1141,16 +1214,20 @@ class GitFlow(WorkflowBase):
         :return: List of changed/upgraded projects
         """
         logger.info("Executing default branch GitFlow")
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
+        self.prepare_versioning()
         changed_projects = []
         for project in self.project_config.config["projects"]:
             if self.upgrade_default_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for the target [{', '.join(changed_projects)}] projects")
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                    self.scm.get_active_branch()
+                )
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1180,8 +1257,7 @@ class GitFlow(WorkflowBase):
             logger.info(f"No new commits are found on the development branch for the target [{project}] project")
             return False
         current_version = self.project_config.get_project_version(
-            project,
-            version_type=self._set_deprecated_version_type("dev")
+            project
         )
         last_bump_type = self.bump_project_version(
             project,
@@ -1201,18 +1277,31 @@ class GitFlow(WorkflowBase):
             logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
             self.project_config.update_project_version(
                 project,
-                new_version,
-                version_type=self._set_deprecated_version_type("dev")
+                new_version
             )
-            self.update_version_history(
-                project,
-                self.scm.get_commit_hexsha(commits[-1], short=True),
-                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            self.project_config.update_project_history(
+                project_path=project,
+                bump_type=SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type],
+                commit_sha=self.scm.get_commit_hexsha(commits[-1], short=True)
             )
+            # self.update_version_history(
+            #     project,
+            #     self.scm.get_commit_hexsha(commits[-1], short=True),
+            #     SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            # )
             return True
         else:
             logger.debug(f"Skipping version upgrade for the target [{project}] project")
             return False
+
+    def push_to_remote(self, branch: str, state: bool = False, tags: bool = False, push_branch: bool = False) -> None:
+        if state:
+            self.scm.push_changes(branch=self.scm.GIT_NOTES_REFS)
+        if tags:
+            self.scm.push_changes(
+                branch=branch,
+                tags=True
+            )
 
     # TODO: Verify loop for projects as it still says Upgrades found even when there are no files.
     def development_branch_flow(self):
@@ -1226,16 +1315,22 @@ class GitFlow(WorkflowBase):
         :return: None
         """
         logger.info("Executing Development branch GitFlow")
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("stable"))
+        self.prepare_versioning()
         changed_projects = []
         for project in self.project_config.config["projects"]:
             if self.upgrade_dev_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] projects")
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.development_branch}",
+                    self.development_branch
+                )
+                if self.push_changes:
+                    self.scm.push_changes(branch=self.scm.GIT_NOTES_REFS, tags=False)
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,
@@ -1265,8 +1360,7 @@ class GitFlow(WorkflowBase):
             logger.info(f"No new commits are found on the development branch for the target [{project}] project")
             return False
         current_version = self.project_config.get_project_version(
-            project,
-            version_type=self._set_deprecated_version_type("dev")
+            project
         )
         last_bump_type = self.bump_project_version(
             project,
@@ -1286,14 +1380,18 @@ class GitFlow(WorkflowBase):
             logger.debug(f"Updating version/s in Comet configuration file for the target [{project}] project")
             self.project_config.update_project_version(
                 project,
-                new_version,
-                version_type=self._set_deprecated_version_type("dev")
+                new_version
             )
-            self.update_version_history(
-                project,
-                self.scm.get_commit_hexsha(commits[-1], short=True),
-                SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            self.project_config.update_project_history(
+                project_path=project,
+                bump_type=SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type],
+                commit_sha=self.scm.get_commit_hexsha(commits[-1], short=True)
             )
+            # self.update_version_history(
+            #     project,
+            #     self.scm.get_commit_hexsha(commits[-1], short=True),
+            #     SemVer.SUPPORTED_RELEASE_TYPES[last_bump_type]
+            # )
             return True
         else:
             logger.debug(f"Skipping version upgrade for the target [{project}] project")
@@ -1312,16 +1410,22 @@ class GitFlow(WorkflowBase):
         :return: None
         """
         logger.info("Executing Release branch GitFlow")
-        self.prepare_versioning(reference_version_type=self._set_deprecated_version_type("dev"))
+        self.prepare_versioning()
         changed_projects = []
         for project in self.project_config.config["projects"]:
             if self.upgrade_release_branch_project_version(project["path"]):
                 changed_projects.append(project['path'])
         if len(changed_projects) > 0:
             logger.info(f"Version upgrade/s found for [{', '.join(changed_projects)}] sub-projects")
-            self.project_config.write_config()
             if self.git_notes_state_backend:
-                self.update_projects_state_git_notes()
+                self.project_state.update_state(
+                    self.project_config.config["projects"],
+                    f"{self.GIT_NOTES_PREFIX}/state/{self.scm.get_active_branch()}",
+                    self.scm.get_active_branch()
+                )
+                if self.push_changes:
+                    self.scm.push_changes(branch=self.scm.GIT_NOTES_REFS, tags=False)
+            self.project_config.write_config()
             self.scm.commit_changes(
                 ConventionalCommits.DEFAULT_VERSION_COMMIT,
                 self.project_config_path,

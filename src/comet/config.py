@@ -44,11 +44,6 @@ class ConfigParser(object):
         "custom"
     ]
 
-    DEPRECATED_PARAMETERS: list = [
-        "dev_version",
-        "stable_version"
-    ]
-
     SUPPORTED_CONFIG_SCHEMA: dict = {
         "additionalProperties": False,
         "type": "object",
@@ -58,130 +53,96 @@ class ConfigParser(object):
             "workspace",
             "projects"
         ],
-        "if": {
-            "properties": {
-                "strategy": {
-                    "type": "string"
-                }
-            }
-        },
-        "then": {
-            "properties": {
-                "strategy": {
-                    "enum": [
-                        "gitflow",
-                        "tbd",
-                        "custom"
-                    ]
-                }
-            },
-            "required": [
-                "strategy",
-                "repo",
-                "workspace",
-                "projects",
-                "stable_branch",
-                "development_branch",
-                "release_branch_prefix",
-            ]
-        },
-        "else": {
-            "properties": {
-                "strategy": {
-                    "additionalProperties": False,
-                    "properties": {
-                        "development_model": {
-                            "additionalProperties": False,
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "enum": [
-                                        "gitflow",
-                                        "tbd",
-                                        "custom"
-                                    ]
-                                },
-                                "options": {
-                                    "type": [
-                                        "object",
-                                        "null"
-                                    ],
-                                    "additionalProperties": False,
-                                    "properties": {
-                                        "stable_branch": {
-                                            "type": "string"
-                                        },
-                                        "development_branch": {
-                                            "type": "string"
-                                        },
-                                        "release_branch_prefix": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
+        "properties": {
+            "strategy": {
+                "type": [
+                    "object"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "development_model": {
+                        "additionalProperties": False,
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "gitflow",
+                                    "tbd",
+                                    "custom"
+                                ]
                             },
-                            "required": [
-                                "type"
-                            ],
-                            "if": {
-                                "properties": {
-                                    "type": {
-                                        "const": "gitflow"
-                                    }
-                                }
-                            },
-                            "then": {
-                                "required": [
-                                    "options"
+                            "options": {
+                                "type": [
+                                    "object",
+                                    "null"
                                 ],
+                                "additionalProperties": False,
                                 "properties": {
-                                    "options": {
-                                        "type": "object",
-                                        "required": [
-                                            "stable_branch",
-                                            "development_branch",
-                                            "release_branch_prefix",
-                                        ]
+                                    "stable_branch": {
+                                        "type": "string"
+                                    },
+                                    "development_branch": {
+                                        "type": "string"
+                                    },
+                                    "release_branch_prefix": {
+                                        "type": "string"
                                     }
                                 }
                             }
                         },
-                        "commits_format": {
-                            "additionalProperties": False,
-                            "type": "object",
+                        "required": [
+                            "type"
+                        ],
+                        "if": {
                             "properties": {
                                 "type": {
-                                    "type": "string",
-                                    "enum": [
-                                        "conventional_commits",
-                                        "custom"
-                                    ]
-                                },
+                                    "const": "gitflow"
+                                }
+                            }
+                        },
+                        "then": {
+                            "required": [
+                                "options"
+                            ],
+                            "properties": {
                                 "options": {
-                                    "type": [
-                                        "object",
-                                        "null"
+                                    "type": "object",
+                                    "required": [
+                                        "stable_branch",
+                                        "development_branch",
+                                        "release_branch_prefix",
                                     ]
                                 }
-                            },
-                            "required": [
-                                "type"
-                            ]
+                            }
                         }
                     },
-                    "required": [
-                        "development_model",
-                        "commits_format"
-                    ]
-                }
-            }
-        },
-        "properties": {
-            "strategy": {
-                "type": [
-                    "object",
-                    "string"
+                    "commits_format": {
+                        "additionalProperties": False,
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "conventional_commits",
+                                    "custom"
+                                ]
+                            },
+                            "options": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    }
+                },
+                "required": [
+                    "development_model",
+                    "commits_format"
                 ]
             },
             "repo": {
@@ -203,25 +164,12 @@ class ConfigParser(object):
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "oneOf": [
-                        {
-                            "required": [
-                                "stable_version",
-                                "dev_version",
-                                "version_regex",
-                                "path",
-                                "version_files"
-                            ]
-                        },
-                        {
-                            "required": [
-                                "version",
-                                "history",
-                                "version_regex",
-                                "path",
-                                "version_files"
-                            ]
-                        }
+                    "required": [
+                        "version",
+                        "history",
+                        "version_regex",
+                        "path",
+                        "version_files"
                     ],
                     "additionalProperties": False,
                     "properties": {
@@ -244,12 +192,6 @@ class ConfigParser(object):
                                     ]
                                 }
                             }
-                        },
-                        "stable_version": {
-                            "type": "string"
-                        },
-                        "dev_version": {
-                            "type": "string"
                         },
                         "version_regex": {
                             "type": "string"
@@ -428,7 +370,7 @@ class ConfigParser(object):
                         "path",
                         "version_files"
                     ],
-                    "additionalProperties": False,
+                    "additionalProperties": True,
                     "properties": {
                         "version_regex": {
                             "type": "string"
@@ -464,6 +406,7 @@ class ConfigParser(object):
         self.skip_state: bool = skip_state
         self.config: dict = {}
 
+    @CometUtilities.deprecation_facilitation_warning
     def _print_deprecated_parameters_warnings(self) -> None:
         if self.has_deprecated_versioning_format():
             logger.deprecated(
@@ -499,34 +442,12 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Comet configuration Schema validation failed. {err.message}")
 
-    @CometUtilities.deprecated_function_warning
-    def _validate_version_type(self, version_type: str) -> None:
-        """
-        Validates the requested version type according to the supported version types specified in
-        :cvar::`supported_version_types`.
-
-        :return: None
-        :raises AssertionError: raises an exception if unsupported version type is provided
-        """
-        try:
-            supported_version_types: list = [
-                "stable",
-                "dev"
-            ]
-            assert version_type in supported_version_types, \
-                f"Invalid version type is specified. " \
-                f"Supported values are [{','.join(supported_version_types)}]"
-        except AssertionError as err:
-            logger.debug(err)
-            raise Exception(f"Failed to validate the requested version type [{version_type}]")
-
-    def _validate_config(self) -> None:
+    def validate_config(self) -> None:
         """
         Executes all the Comet-managed project configuration file validation operations. Currently, it checks the
         following:
             * Configuration file YAML output existence
             * Schema validation
-            * Supported values validation.
 
         :return: None
         :raises AssertionError, ValidationError:
@@ -563,8 +484,10 @@ class ConfigParser(object):
             f"Sanitizing project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
         for idx, project in enumerate(self.config["projects"]):
             if not project['path'] in [".", "./", ""]:
-                self.config["projects"][idx]["path"] = f"{os.path.join(os.path.dirname(self.config_path), project['path'])}"
-        logger.debug(f"Sanitized project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
+                self.config["projects"][idx][
+                    "path"] = f"{os.path.join(os.path.dirname(self.config_path), project['path'])}"
+        logger.debug(
+            f"Sanitized project configuration according to the root/repo directory [{os.path.dirname(self.config_path)}]")
 
     # TODO: Try to remove configuration data validation
     def _validate_project_path(self, project_path: str) -> None:
@@ -578,7 +501,7 @@ class ConfigParser(object):
         """
         try:
             # TODO: Remove redundant config validation line
-            # self._validate_config()
+            # self.validate_config()
             assert project_path in [project_dict["path"] for project_dict in self.config["projects"]], \
                 f"The requested Comet project [{project_path}] does not exist in the Comet configuration. " \
                 f"Please add the project to the Comet configuration file first."
@@ -653,146 +576,12 @@ class ConfigParser(object):
             key = f"{version_type}_version" if version_type else "version"
             raise Exception(f"The requested version parameter [{key}] does not exist in Comet config")
 
-    # TODO: Upgrade for new formatting as well.
-    def initialize_config(
-            self,
-            strategy: dict = {},
-            workspace: str = None,
-            repo: str = None,
-            projects: list = []
-    ) -> None:
-        """
-        Initializes the Comet configuration file using method parameters or user inputs if the parameter is not
-        specified.
-
-        :param strategy: Development strategy for Comet-managed repository
-        :param workspace: Git Username/Workspace of Comet-managed repository
-        :param repo: Git Repository name
-        :param projects: List of projects managed by Comet in the repository
-        :return: None
-        :raises AssertionError:
-            raises an exception if validation for the initialized Comet configuration file fails
-        """
-        try:
-            if not strategy:
-                self.config["strategy"] = {}
-                self.config["strategy"]["development_model"] = {}
-                self.config["strategy"]["development_model"]["type"] = input(
-                    "Select workflow development model [gitflow]: ") or "gitflow"
-                self.config["strategy"]["development_model"]["options"] = {}
-                if self.config["strategy"]["development_model"]["type"] == "gitflow":
-                    self.config["strategy"]["development_model"]["options"]["stable_branch"] = input(
-                        "Enter the name of the stable branch[master]: ") or "master"
-                    self.config["strategy"]["development_model"]["options"]["development_branch"] = input(
-                        "Enter the name of the development branch[develop]: ") or "develop"
-                    self.config["strategy"]["development_model"]["options"]["release_branch_prefix"] = input(
-                        "Enter the prefix for release branches[release]: ") or "release"
-                self.config["strategy"]["commits_format"] = {}
-                self.config["strategy"]["commits_format"]["type"] = input(
-                    "Select commit messages format type [conventional_commits]: ") or "conventional_commits"
-                self.config["strategy"]["commits_format"]["options"] = {}
-            else:
-                self.config["strategy"] = strategy
-            if not workspace:
-                self.config["workspace"] = input(
-                    "Enter the name of the SCM provider workspace/userspace [beenum22]: ") or "beenum22"
-            else:
-                self.config["workspace"] = workspace
-            if not repo:
-                self.config["repo"] = input("Enter the name of the repository[comet]: ") or "comet"
-            else:
-                self.config["repo"] = repo
-            if not projects:
-                self.config["projects"] = []
-                while True:
-                    subprojects = input("Do you have sub-projects in the repository?(yes/no)[no]: ") or "no"
-                    if subprojects not in ["yes", "no"]:
-                        continue
-                    subprojects_info = {}
-                    if subprojects == "no":
-                        if len(self.config["projects"]) == 0:
-                            subprojects_info["path"] = "."
-                            subprojects_info["version"] = "0.0.0"
-                            subprojects_info["history"] = {
-                                "next_release_type": "",
-                                "latest_bump_commit_hash": ""
-                            }
-                            subprojects_info["version_regex"] = ""
-                            subprojects_info["version_files"] = []
-                            self.config["projects"].append(subprojects_info)
-                        break
-                    if subprojects == "yes":
-                        subprojects_info["path"] = input("Enter the path for sub-project: ")
-                        subprojects_info["history"] = {
-                            "next_release_type": "",
-                            "latest_bump_commit_hash": ""
-                        }
-                        subprojects_info["version"] = input("Enter the version for sub-project[0.0.0]: ") or "0.0.0"
-                        subprojects_info["version_regex"] = input("Enter the version regex for sub-project[]: ") or ""
-                        subprojects_info["version_files"] = []
-                        while True:
-                            add_version_files = input(
-                                "Include a version file in the sub-project?(yes/no)[no]: ") or "no"
-                            if add_version_files not in ["yes", "no"]:
-                                continue
-                            elif add_version_files == "yes":
-                                subprojects_info["version_files"].append(
-                                    input("Enter the version file path relative to the sub-project?[]: ")
-                                )
-                            elif add_version_files == "no":
-                                break
-                    self.config["projects"].append(subprojects_info)
-            else:
-                self.config["projects"] = projects
-            self._validate_config()
-        except Exception as err:
-            logger.debug(err)
-            raise
-
     @CometUtilities.unstable_function_warning
-    def migrate_deprecated_config(self) -> None:
-        """
-        Migrates deprecated Comet configuration format to the latest format.
-
-        :return: None
-        """
-        migration = False
-        if type(self._lookup_parameter_value("strategy")) is str:
-            logger.info(f"Migrating deprecated strategy parameter type from 'string' to a 'dictionary/map' "
-                        f"in Comet configuration")
-            strategy = self.config["strategy"]
-            self.config["strategy"] = {}
-            self.config["strategy"]["development_model"] = {}
-            self.config["strategy"]["commits_format"] = {}
-            self.config["strategy"]["development_model"]["type"] = strategy
-            self.config["strategy"]["commits_format"]["type"] = "conventional_commits"
-            self.config["strategy"]["development_model"]["options"] = {}
-            self.config["strategy"]["commits_format"]["options"] = None
-            self.config["strategy"]["development_model"]["options"]["stable_branch"] = self.config["stable_branch"]
-            self.config["strategy"]["development_model"]["options"]["development_branch"] = self.config["development_branch"]
-            self.config["strategy"]["development_model"]["options"]["release_branch_prefix"] = self.config["release_branch_prefix"]
-            self.config.pop("stable_branch", None)
-            self.config.pop("development_branch", None)
-            self.config.pop("release_branch_prefix", None)
-            migration = True
-        if self.has_deprecated_versioning_format():
-            logger.info(f"Migrating deprecated versioning format to newer versioning format in Comet "
-                        f"configuration")
-            projects = []
-            for project in self.config["projects"]:
-                project["version"] = project["dev_version"]
-                project.pop("dev_version", None)
-                project.pop("stable_version", None)
-                project["history"] = {}
-                project["history"]["next_release_type"] = "no_change"
-                project["history"]["latest_bump_commit_hash"] = None
-                projects.append(project)
-            self.config["projects"] = projects
-            migration = True
-        else:
-            logger.info(f"No deprecated configuration parameters found in Comet configuration. Skipping migration.")
-        if migration:
-            self._validate_config()
+    def has_config_file(self) -> bool:
+        if os.path.exists(self.config_path):
+            logging.debug(f"Comet configuration file [{self.config_path}] doesn't exist in the repository")
+            return True
+        return False
 
     @CometUtilities.deprecation_facilitation_warning
     def has_deprecated_versioning_format(self) -> bool:
@@ -806,6 +595,22 @@ class ConfigParser(object):
         for project in self.config["projects"]:
             if "dev_version" in project or "stable_version" in project:
                 return True
+        return False
+
+    @CometUtilities.unsupported_function_error
+    def has_version_state(self) -> bool:
+        """
+        Checks if the Comet configuration file is used to store the Comet versioning state/history.
+
+        :return: Returns 'True' if the state exists or 'False' otherwise
+        """
+        for project in self.config["projects"]:
+            if "version" in project or "history" in project:
+                logger.info(
+                    f"Comet-managed projects' version state/history does not exist in the project configuration file"
+                )
+                return True
+        logger.info(f"Comet-managed projects' version state/history exists in the project configuration file")
         return False
 
     def get_projects(self):
@@ -826,41 +631,6 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Failed to get project names from the YAML configuration file")
 
-    @CometUtilities.unsupported_function_error
-    def get_project_last_bump_type(self, project_path: str) -> [str, None]:
-        """
-        Fetches the last version bump type for the specified Comet-managed project in :param:`project_path`.
-
-        :param project_path: Project in the Comet configuration file
-        :return: Comet-managed project last version bump type specified in 'history' parameter
-        :raises Exception: If an invalid project path is specified
-        """
-        try:
-            self._validate_project_path(project_path)
-            return self._lookup_project_parameter_value(project_path, "history")["next_release_type"]
-        except Exception as err:
-            logger.debug(err)
-            raise Exception(f"Failed to get the last project [{project_path}] version bump type history from "
-                            f"the Comet configuration file")
-
-    @CometUtilities.unsupported_function_error
-    def get_project_last_bump_commit_hash(self, project_path: str) -> [str, None]:
-        """
-        Fetches the last version bump commit hash for the specified Comet-managed project in
-        :param:`project_path`.
-
-        :param project_path: Project in the Comet configuration file
-        :return: Comet-managed project last version bump commit hash specified in 'history' parameter
-        :raises Exception: If an invalid project path is specified
-        """
-        try:
-            self._validate_project_path(project_path)
-            return self._lookup_project_parameter_value(project_path, "history")["latest_bump_commit_hash"]
-        except Exception as err:
-            logger.debug(err)
-            raise Exception(f"Failed to get the last project [{project_path}] version bump commit "
-                            f"history from the Comet configuration file")
-
     @CometUtilities.unstable_function_warning
     def get_project_history(self, project_path: str) -> [dict, None]:
         """
@@ -877,26 +647,6 @@ class ConfigParser(object):
             logger.debug(err)
             raise Exception(f"Failed to get the last project [{project_path}] version bump commit "
                             f"history from the Comet configuration file")
-
-    # TODO: Remove this method
-    @CometUtilities.unsupported_function_error
-    def get_project_release_hash(self, project_path: str) -> [str, None]:
-        """
-        Fetches the release commit hash for the specified Comet-managed project in :param:`project_path`.
-
-        :param project_path: Project in the Comet configuration file
-        :return: Comet-managed project release commit hash
-        :raises Exception: If an invalid project path is specified
-        """
-        try:
-            self._validate_project_path(project_path)
-            return self._lookup_project_parameter_value(
-                project_path, "release_commit_sha"
-            )
-        except (Exception) as err:
-            logger.debug(err)
-            raise Exception(f"Failed to get the project [{project_path}] release commit hash from the "
-                            f"Comet configuration file")
 
     @CometUtilities.unstable_function_warning
     def get_development_model_type(self) -> str:
@@ -916,68 +666,42 @@ class ConfigParser(object):
 
         :return: Configured development model options
         """
-        options = {}
-        if type(self._lookup_parameter_value("strategy")) is str:
-            with CometDeprecationContext(
-                f"Setting options for the deprecated 'strategy' parameter type"
-            ):
-                options["stable_branch"] = self._lookup_parameter_value("stable_branch")
-                options["development_branch"] = self._lookup_parameter_value("development_branch")
-                options["release_branch_prefix"] = self._lookup_parameter_value("release_branch_prefix")
-        else:
-            options = self._lookup_parameter_value("strategy")["development_model"]["options"]
-        return options
+        return self._lookup_parameter_value("strategy")["development_model"]["options"]
 
-    @CometUtilities.deprecated_arguments_warning("version_type")
-    def get_project_version(self, project_path: str, version_type: [str, None] = None) -> str:
+    def get_project_version(self, project_path: str) -> str:
         """
-        Fetches the specified version type in :param:`version_type` for the specified project in :param:`project_path`.
+        Fetches the version for the specified project in :param:`project_path`.
 
         :param project_path: Project in the Comet configuration file
-        :param version_type: Reference version type in the Comet configuration file (Deprecated)
         :return: Project specific version according to the specified version type
         :raises Exception:
-            raises an exception if an invalid version type is specified
+            raises an exception if fails to fetch the version
         """
         try:
-            if version_type:
-                with CometDeprecationContext(
-                    f"Validating the version type in deprecated versioning format. Deprecated versioning format has "
-                    f"two parameters, 'dev_version' and 'stable_version'."
-                ):
-                    self._validate_version_type(version_type)
             self._validate_project_path(project_path)
             return self._lookup_project_parameter_value(
-                project_path, f"{version_type}_version" if version_type else "version"
+                project_path, "version"
             )
         except Exception as err:
             logger.debug(err)
             raise Exception(f"Failed to get the project [{project_path}] version from the Comet configuration file")
 
-    @CometUtilities.deprecated_arguments_warning("version_type")
-    def update_project_version(self, project_path: str, version: str, version_type: [str, None] = None) -> None:
+    def update_project_version(self, project_path: str, version: str) -> None:
         """
-        Updates specified version type :param:`version_type` for the specified project :param:`project_path` according
+        Updates version for the specified project :param:`project_path` according
         to the specified version :param:`version` in the Comet configuration file.
 
         :param project_path: Project in the Comet configuration file
         :param version: Version to set in the Comet configuration file
-        :param version_type: Reference version type in the Comet configuration file (Deprecated)
         :return: None
         :raises Exception:
-            raises an exception if an invalid version type is specified or specified project doesn't exist
+            raises an exception if the specified project doesn't exist
         """
         try:
-            if version_type:
-                with CometDeprecationContext(
-                        f"Validating the version type in deprecated versioning format. Deprecated versioning format has "
-                        f"two parameters, 'dev_version' and 'stable_version'."
-                ):
-                    self._validate_version_type(version_type)
             self._validate_project_path(project_path)
             self._change_project_parameter_value(
                 project_path,
-                f"{version_type}_version" if version_type else "version",
+                "version",
                 version
             )
         except AssertionError as err:
@@ -1040,9 +764,8 @@ class ConfigParser(object):
                 for project in self.config["projects"]:
                     project.pop("version", None)
                     project.pop("history", None)
-                print(self.config)
             if validate:
-                self._validate_config()
+                self.validate_config()
             if sanitize:
                 self._sanitize_config()
         except AssertionError as err:
@@ -1058,7 +781,7 @@ class ConfigParser(object):
             raises an exception if it fails to write to the YAML-based Comet configuration file
         """
         try:
-            config = self.config
+            config = self.config.copy()
             if self.skip_state:
                 for project in config["projects"]:
                     project.pop("version", None)

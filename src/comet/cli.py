@@ -8,11 +8,13 @@ import logging.config
 from colorama import Fore, Style
 import coloredlogs
 
-from .work_flows import GitFlow
-from .work_flows import WorkflowRunner
-from .config import ConfigParser
-from .scm import Scm
-from .utilities import CometUtilities
+from comet.init import InitRepo
+from comet.work_flows import WorkflowRunner
+from comet.config import ConfigParser
+from comet.init import State
+from comet.scm import Scm
+from comet.utilities import CometUtilities
+from comet.migration import MigrationHelper
 
 __author__ = 'Muneeb Ahmad'
 __version__ = '0.3.1-dev.1'
@@ -211,7 +213,8 @@ def main() -> None:
                 "release-candidate",
                 "release",
                 "sync",
-                "migrate-config"
+                "migrate-config",
+                "migrate-state-backend"
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
@@ -219,7 +222,9 @@ def main() -> None:
                  "release-candidate: Create Release candidate branch for Comet managed project/s, "
                  "release: Release a new version in stable branch for Comet managed project/s, "
                  "sync: Synchronizes the development branch with stable branch, "
-                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format"
+                 "migrate-config: Migrate the deprecated Comet configuration format to the newer format"
+                 "migrate-state-backend: Migrate the versions state from Comet configuration file to newer Git notes "
+                 "                       based backend"
         )
         flow_group.add_argument(
             "--run",
@@ -229,7 +234,8 @@ def main() -> None:
                 "release-candidate",
                 "release",
                 "sync",
-                "migrate-config"
+                "migrate-config",
+                "migrate-state-backend"
             ],
             help="Comet action to execute.\n"
                  "init: Initialize Comet repository configuration if it does not exist (Interactive mode), "
@@ -237,21 +243,22 @@ def main() -> None:
                  "release-candidate: Create Release candidate branch for Comet managed project/s, "
                  "release: Release a new version in stable branch for Comet managed project/s, "
                  "sync: Synchronizes the development branch with stable branch, "
-                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format",
+                 "migrate-config: Upgrades the deprecated Comet configuration format to the newer format"
+                 "migrate-state-backend: Migrate the versions state from Comet configuration file to newer Git notes ",
             required=False,
             action=deprecated_args("[sync, init, branch-flow, release, release-candidate]")
         )
         flow_group.add_argument(
             "-s",
             "--scm-provider",
-            default=None,
+            default="github",
             choices=["github", "bitbucket"],
             help="Git SCM provider name"
             )
         flow_group.add_argument(
             "-c",
             "--connection-type",
-            default=None,
+            default="https",
             choices=["ssh", "https"],
             help="Git SCM provider remote connection type"
             )
@@ -273,7 +280,7 @@ def main() -> None:
             default="~/.ssh/id_rsa",
             help="Git SSH local private key path"
             )
-        # NOTE: Support for running Comet from any directory is disabled for now
+        # TODO: Support for running Comet from any directory is disabled for now
         flow_group.add_argument(
             "-rlp",
             "--repo-local-path",
@@ -313,8 +320,40 @@ def main() -> None:
             banner()
             comet_logger.setLevel(logging.INFO)
         if args.projects:
-            project_config = ConfigParser(config_path=args.project_config)
+            project_config = ConfigParser(
+                config_path=args.project_config,
+                skip_state=args.use_git_notes_state
+            )
             project_config.read_config()
+            if args.use_git_notes_state:
+                scm = Scm(
+                    scm_provider=args.scm_provider,
+                    connection_type=args.connection_type,
+                    username=args.username,
+                    password=args.password,
+                    repo=project_config.config["repo"],
+                    workspace=project_config.config["workspace"],
+                    repo_local_path=args.repo_local_path,
+                    ssh_private_key_path=args.ssh_private_key_path,
+                    configure_remote=args.push
+                )
+                project_state = State(
+                    project_config,
+                    scm
+                )
+                for project in project_state.get_state(
+                        f"comet/state/{scm.get_active_branch()}",
+                        scm.get_active_branch()
+                ):
+                    project_config.update_project_version(
+                        project_path=project["path"],
+                        version=project["version"],
+                    )
+                    project_config.update_project_history(
+                        project_path=project["path"],
+                        bump_type=project["history"]["next_release_type"],
+                        commit_sha=project["history"]["latest_bump_commit_hash"]
+                    )
             print(" ".join(project_config.get_projects()))
         elif args.project_version or args.project_dev_version or args.project_stable_version:
             project_config = ConfigParser(config_path=args.project_config)
@@ -338,24 +377,39 @@ def main() -> None:
                     print(f"{project.lstrip('/.')} "
                           f"{project_config.get_project_version(project_path=project, version_type='stable')}")
         if args.run == "init" or args.workflow == "init":
-            project_config = ConfigParser(config_path=args.project_config)
-            if os.path.exists(args.project_config):
-                logging.warning(f"Comet configuration is already initialized at [{args.project_config}]")
-                logging.warning(f"Skipping initialization...")
-            else:
-                logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
-                project_config.initialize_config()
-                project_config.write_config()
+            # if os.path.exists(args.project_config):
+                # logging.warning(f"Comet configuration is already initialized at [{args.project_config}]")
+                # logging.warning(f"Skipping initialization...")
+            # else:
+            logging.info(f"Initializing Comet configuration [{args.project_config}] using interactive mode")
+            repo = InitRepo(repo_config_path=args.project_config, git_notes_state_backend=args.use_git_notes_state, push_changes=args.push)
+            repo.initialize_config()
         elif args.run == "migrate-config" or args.workflow == "migrate-config":
-            project_config = ConfigParser(
-                config_path=args.project_config
+            migration = MigrationHelper(
+                project_config_path=args.project_config,
+                scm_provider=args.scm_provider,
+                connection_type=args.connection_type,
+                username=args.username,
+                password=args.password,
+                ssh_private_key_path=args.ssh_private_key_path,
+                project_local_path=args.repo_local_path,
+                push_changes=args.push
             )
-            project_config.read_config()
             logging.info(f"Migrating Comet configuration [{args.project_config}] to a newer/latest format")
-            project_config.migrate_deprecated_config()
-            project_config.write_config()
-
-
+            migration.migrate_deprecated_config()
+        elif args.run == "migrate-state-backend" or args.workflow == "migrate-state-backend":
+            migration = MigrationHelper(
+                project_config_path=args.project_config,
+                scm_provider=args.scm_provider,
+                connection_type=args.connection_type,
+                username=args.username,
+                password=args.password,
+                ssh_private_key_path=args.ssh_private_key_path,
+                project_local_path=args.repo_local_path,
+                push_changes=args.push
+            )
+            logging.info(f"Migrating Comet state backend to Git Notes")
+            migration.migrate_state_backend()
         elif (args.run in ["sync", "branch-flow", "release-candidate", "release"] or
               args.workflow in ["sync", "development", "release-candidate", "release"]):
             workflow = WorkflowRunner(
@@ -381,6 +435,7 @@ def main() -> None:
         if not debug_mode:
             comet_logger.error("Something went wrong! Set --debug flag during execution to view more details")
         comet_logger.error(err)
+        raise
         sys.exit(1)
     except KeyboardInterrupt:
         comet_logger.error("Interrupted. Exiting...")

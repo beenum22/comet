@@ -36,8 +36,7 @@ class SemVer(object):
             project_path=".",
             version_files=["VERSION"],
             version_regex="",
-            project_version_file=".comet.yml",
-            reference_version_type="stable"
+            reference_version="0.1.0"
         )
 
     :cvar MAJOR: Numerical representation for Major type of version bump/release
@@ -50,9 +49,6 @@ class SemVer(object):
         Types of supported releases with respective names according to Semantic Versioning spec
     :cvar SUPPORTED_PRE_RELEASE_TYPES:
         Types of supported pre-release identifiers
-    :cvar DEFAULT_VERSION_FILE:
-        Default project file name.
-        It is set to `.comet.yml` as the SemVer object is developed for Comet primarily.
     """
 
     MAJOR = 5
@@ -83,16 +79,12 @@ class SemVer(object):
         "dev"
     ]
 
-    DEFAULT_VERSION_FILE = ".comet.yml"
-
-    @CometUtilities.deprecated_arguments_warning("reference_version_type")
     def __init__(
             self,
             project_path: str = ".",
             version_files: list = [],
             version_regex: str = "",
-            project_version_file: str = DEFAULT_VERSION_FILE,
-            reference_version_type: [str, None] = None
+            reference_version: str = "",
     ) -> None:
         """
         Initialize a new SemVer class.
@@ -107,9 +99,8 @@ class SemVer(object):
         :param project_path: Target project directory path
         :param version_files: List of additional version file paths for the target project
         :param version_regex: Regex pattern to use while replacing the version in additional project version files
-        :param project_version_file:
-            Main project version file path. Defaults to Comet configuration file `.comet.yml`.
-        :param reference_version_type: Reference version to use from the Comet configuration file (Deprecated)
+        :param reference_version:
+            Reference project version to use as base version for version upgrades
         :return: None
         :raises AssertionError:
             raises an exception if the pre-checks and version preparation fails
@@ -118,8 +109,7 @@ class SemVer(object):
         self.version_files = version_files
         self.version_regex = version_regex
         self.version_object = None
-        self.project_version_file = project_version_file
-        self.reference_version_type = reference_version_type
+        self.reference_version = reference_version
         self.release_version = None
         self.current_version = None
         self._pre_checks()
@@ -149,23 +139,6 @@ class SemVer(object):
         """
         logger.debug(f"Sanitizing version files paths according to the project directory [{self.project_path}]")
         self.version_files = [os.path.normpath(f"{self.project_path}/{file}") for file in self.version_files]
-        self.project_version_file = os.path.normpath(f"{self.project_version_file}")
-
-    def _validate_default_version_file(self) -> None:
-        """
-        Validates the existence of main/default project version file and the reference version found in it.
-
-        :return: `None` if the validation is successful and throws an exception otherwise
-        """
-        try:
-            assert os.path.exists(self.project_version_file), \
-                f"Default Version file [{self.project_version_file}] not found!"
-            Version.parse(self._read_default_version_file(version_type=self.reference_version_type))
-        except (ValueError, AssertionError) as err:
-            logger.debug(err)
-            raise Exception(
-                f"Failed to validate the default Comet version file"
-            )
 
     def _validate_release_type(self, release: int) -> bool:
         """
@@ -183,20 +156,6 @@ class SemVer(object):
             logger.debug(err)
             return False
 
-    @CometUtilities.deprecated_function_warning
-    def _validate_reference_version_type(self) -> None:
-        """
-        Validates the reference version type according to the supported reference version types specified in
-        :cvar::`SUPPORTED_REFERENCE_VERSION_TYPES`.
-
-        :return: None
-        :raises AssertionError: raises an exception if unsupported reference version type is provided
-        """
-        assert self.reference_version_type in list(self.SUPPORTED_REFERENCE_VERSION_TYPES), \
-            f"Invalid reference version type" \
-            f"[{self.reference_version_type}({self.SUPPORTED_REFERENCE_VERSION_TYPES})] specified! " \
-            f"Supported values are [{','.join([str(i) for i in self.SUPPORTED_REFERENCE_VERSION_TYPES])}]"
-
     def _validate_pre_release_type(self, pre_release: str) -> bool:
         """
         Validates the pre-release identifier according to the supported pre-release identifiers specified in
@@ -213,67 +172,6 @@ class SemVer(object):
         except AssertionError as err:
             logger.debug(err)
             return False
-
-    @CometUtilities.unsupported_function_error
-    def _initialize_default_version_file(self, version: str = "0.1.0-dev.1") -> bool:
-        """
-        Validates the pre-release identifier according to the supported pre-release identifiers specified in
-        :cvar::`SUPPORTED_PRE_RELEASE_TYPES`.
-
-        :param version: Initialized version string
-        :return: Returns `True` if the version file initialized successfully and `False` otherwise
-        """
-        try:
-            with open(self.project_version_file, 'a') as f:
-                f.write(version)
-            return True
-        except OSError as err:
-            logger.debug(err)
-            return False
-
-    @CometUtilities.deprecated_arguments_warning("version_type")
-    def _read_default_version_file(self, version_type: [str, None] = None) -> str:
-        """
-        Fetches the reference version string from the main/default project version file.
-
-        :param version_type: Reference version type (Deprecated)
-        :return: Reference version string
-        :raises OSError:
-            raises an exception if it fails to read the reference version from the main/default project version file.
-        """
-        try:
-            project_config = ConfigParser(
-                config_path=self.project_version_file
-            )
-            project_config.read_config(validate=False)
-            return project_config.get_project_version(self.project_path, version_type=version_type)
-        except OSError as err:
-            logger.debug(err)
-            raise
-
-    @CometUtilities.deprecated_arguments_warning("version_type")
-    def _update_default_version_file(self, version: str, version_type: str = "") -> None:
-        """
-        Updates the specified reference version type in the main/default project version file according to the latest
-        version generated by SemVer instance.
-
-        :param version:
-            Updated/New version string.
-        :param version_type: Reference version type (Deprecated)
-        :return: None
-        :raises OSError:
-            raises an exception if it fails to write/update the reference version in the main/default project version
-            file.
-        """
-        try:
-            project_config = ConfigParser(
-                config_path=self.project_version_file
-            )
-            project_config.read_config(validate=False)
-            project_config.update_project_version(self.project_path, version, version_type)
-        except OSError as err:
-            logger.debug(err)
-            raise
 
     def _validate_version_files(self) -> bool:
         """
@@ -358,16 +256,11 @@ class SemVer(object):
             raises an exception if it fails to prepare the current reference project version for new releases/bumps
         """
         try:
-            if self.reference_version_type:
-                self._validate_reference_version_type()
-            self._validate_default_version_file()
-            self.version_object = Version.parse(
-                self._read_default_version_file(version_type=self.reference_version_type)
-            )
+            self.version_object = Version.parse(self.reference_version)
         except (ValueError, Exception) as err:
             logger.debug(err)
             raise Exception(
-                f"Failed to prepare the version using default version file [{self.project_version_file}]"
+                f"Failed to prepare the version using the reference version [{self.reference_version}]"
             )
 
     def compare_bumps(self, current_bump: int, next_bump: int) -> int:

@@ -76,6 +76,8 @@ class Scm(object):
         }
     }
 
+    GIT_NOTES_REFS = "refs/notes/*"
+
     def __init__(
             self,
             connection_type: str = "https",
@@ -263,6 +265,18 @@ class Scm(object):
         except AssertionError as err:
             raise ScmException(err)
 
+    @CometUtilities.unstable_function_warning
+    def fetch_notes(self) -> None:
+        """
+        Fetches all the Git notes from the remote SCM provider
+        :return: None
+        """
+        logger.debug(f"Fetching Git notes from remote ref [refs/notes/*:refs/notes/*]")
+        self.repo_object.remote().fetch(
+            refspec=["refs/notes/*:refs/notes/*", ],
+            force=False,
+        )
+
     def get_supported_providers(self) -> list:
         """
         Helper method to return a list of supported SCM providers' names.
@@ -354,6 +368,7 @@ class Scm(object):
         """
         return self.repo_object.commit(revision)
 
+    # TODO: Check if this is really needed?
     def generate_repo_url(self) -> str:
         """
         Generates a remote Git repository URL according to the provided attributes and active SCM URL.
@@ -499,7 +514,8 @@ class Scm(object):
         return commits
 
     # TODO: Check warnings for this method
-    def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False) -> None:
+    def commit_changes(self, msg: str = "chore: commit changes", *paths: list, push: bool = False,
+                       add: bool = False) -> None:
         """
         Commits changes for a specified file path/s with an optional flag to push changes to the upstream or remote
         Git repository.
@@ -509,17 +525,23 @@ class Scm(object):
             according to the Conventional Commits Specification
         :param paths: Path/s to be added in the commit
         :param push: Enables pushing commits to the remote/upstream Git repository
+        :param add: Tracks all the untracked files before commit
         :return: None
         :raises GitError:
             raises an exception if it fails to make Git commit changes locally or fails to push the local changes to
             the upstream/remote
         """
         try:
-            repo_changed_files = [item.a_path for item in self.repo_object.index.diff(None)]
+            if add:
+                self.repo_object.git.add(paths)
+                repo_changed_files = paths
+            else:
+                repo_changed_files = [item.a_path for item in self.repo_object.index.diff(None)]
+
             project_staged_files = [path for path in paths if path in repo_changed_files]
             if len(project_staged_files) > 0:
                 logger.info(f"Committing path/s [{[path for path in paths]}] changes")
-                self.repo_object.git.add(paths)
+                # self.repo_object.git.add(paths)
                 self.repo_object.git.commit("-m", msg)
                 if push:
                     self.push_changes(
@@ -527,7 +549,7 @@ class Scm(object):
                         tags=False
                     )
             else:
-                logger.warning(f"No commits found for project files {','.join(paths)}")
+                logger.info(f"No commits found for project files {','.join(paths)}")
         except GitError as err:
             logger.debug(err)
             raise
@@ -626,6 +648,16 @@ class Scm(object):
             raise
 
     @CometUtilities.unstable_function_warning
+    def checkout_branch(self, target_reference: str) -> None:
+        """
+        Checkouts to a specified target Git branch/reference.
+
+        :param target_reference: Target branch/reference to checkout to
+        :return: None
+        """
+        self.repo_object.git.checkout(self._strip_remote_alias(target_reference))
+
+    @CometUtilities.unstable_function_warning
     def merge_branches(self, source_branch: str, destination_branch: str, msg: str = None) -> None:
         """
         Merge Git branches locally with the specified Git message.
@@ -658,17 +690,19 @@ class Scm(object):
 
         :param branch: Source Git branch name
         :param tags: Flag to push local Git tags
+        :param notes: Flag to push local Git notes
         :return: None
         :raises GitError:
             raises an exception if it fails to push changes to the remote/upstream Git repository
         """
         try:
-            logger.info(f"Pushing local changes to remote [{self.get_remote_alias()}]")
+            logger.info(f"Pushing local changes for [{branch}] to remote [{self.get_remote_alias()}]")
             self.repo_object.remote().push(self._strip_remote_alias(branch), tags=tags)
         except GitError as err:
             logger.debug(err)
             raise
 
+    # TODO: Raise specific or custom Error class for SCM
     @CometUtilities.unstable_function_warning
     def add_note(
             self,
@@ -798,4 +832,37 @@ class Scm(object):
             logger.debug(err)
             raise Exception(
                 f"Failed to remove Git notes for target [{object_ref}] at the specified Git reference [{note_ref}]"
+            )
+
+    @CometUtilities.unstable_function_warning
+    def find_latest_note(
+            self,
+            note_ref: str
+    ) -> str:
+        """
+        List Git notes at the specified Git notes reference.
+
+        :param note_ref: Custom reference under `.git/refs/notes/` where the Git note will be stored
+
+        :return: Git notes list
+        :raises GitError:
+            raises an exception if it fails to list Git notes for the specified Git notes reference
+        """
+        try:
+            assert self.has_local_reference(reference=note_ref), f"Git notes reference [{note_ref}] doesn't exist in " \
+                                                                 f"the local Git repository"
+            logger.debug(f"Listing Git notes at [{note_ref}] reference")
+            notes = self.repo_object.git.notes(
+                f"--ref={note_ref}",
+                "list"
+            )
+            notes_objects = [note.split(" ")[1] for note in notes.split("\n")]
+            latest_note_object = max([self.repo_object.rev_parse(note).committed_datetime for note in notes_objects])
+            for note in notes_objects:
+                if self.repo_object.rev_parse(note).committed_datetime == latest_note_object:
+                    return note
+        except (AssertionError, GitError) as err:
+            logger.debug(err)
+            raise Exception(
+                f"Failed to fetch latest Git note for the specified Git reference [{note_ref}]"
             )
